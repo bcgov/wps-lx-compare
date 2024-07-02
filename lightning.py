@@ -8,6 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from zipfile import ZipFile
 from bs4 import BeautifulSoup
+import math 
 
 
 
@@ -61,7 +62,7 @@ def plotter(file,start_date,end_date):
             
         elif datetime.strptime(time[i][0:-3], "%Y-%m-%dT%H:%M:%S.%f") > datetime.strptime(end_date, '%Y-%m-%d'):
             break;
-    
+        
     
     # Create a GeoDataFrame from the points
     
@@ -82,8 +83,6 @@ def plotter(file,start_date,end_date):
             if charge[0:2] == filtered_strikes[i]:
                 charge = charge[2]
                 break;
-            else:
-                charge = 'WRONG'
         size = int(abs(charge/10000))
         if charge < 0:
             negative += 1
@@ -91,6 +90,10 @@ def plotter(file,start_date,end_date):
         else:
             positive += 1
             ax.plot(filtered_strikes[i][0], filtered_strikes[i][1], marker='o', markersize=size, color='red', transform=ccrs.PlateCarree())
+        
+        percent = i/len(filtered_strikes)
+        if int(percent) // 10 == 0:
+            print(f'{percent}%')
 
     ax.scatter(np.nan,np.nan, marker='o', s=10, color='blue', label=f'negative strikes: {negative}')
     ax.scatter(np.nan,np.nan, marker='o', s=10, color='red', label=f'positive strike: {positive}')
@@ -100,28 +103,27 @@ def plotter(file,start_date,end_date):
     plt.legend()
 
     # Show the plot
-    plt.savefig(f'Lighting strikes and LCFs {end_date}.png')
+    plt.savefig(f'strikes_LCFs_{start_date}_{end_date}.png')
     plt.clf()
 
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance between two points 
+    on the Earth's surface given their latitude and longitude 
+    in degrees.
+    """
+    # Convert latitude and longitude from degrees to radians
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
     
-
-def comp(file1,file2, strike_fires):
-    data1 = data_parser(file1)
-    data2 = data_parser(file2)
-
-
-def read_kmz_file(kmz_file):
-    # Open the KMZ file
-    with ZipFile(kmz_file, 'r') as kmz:
-        # Look for the KML file inside the KMZ (there might be multiple, so we take the first)
-        kml_file = [name for name in kmz.namelist() if name.lower().endswith('.kml')][0]
-        
-        # Extract the KML content
-        kml_content = kmz.read(kml_file)
-        
-        # Parse the KML content using BeautifulSoup
-        soup = BeautifulSoup(kml_content, 'html.parser')  # Use 'xml' parser for KML
-        
-        # Print the KML content (or process it further)
-        print(soup.prettify())
+    # Haversine formula
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+    a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    distance = 6371 * c  # Radius of Earth in kilometers
+    
+    return distance
 
