@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from zipfile import ZipFile
 from bs4 import BeautifulSoup
 import math 
-
+from misc import err
 
 
 
@@ -31,11 +31,11 @@ def plotter(file,start_date,end_date):
     
     ax.set_extent([-136, -114, 48.3, 60.5], crs=ccrs.PlateCarree())
         
-    bc_gdf = gpd.read_file('~/Downloads/bc_boundary_terrestrial_multipart.shp')
+    bc_gdf = gpd.read_file('~/wxps-lx-compare/shape_files/bc_boundary_terrestrial_multipart.shp')
     bc_gdf = bc_gdf.to_crs(epsg=4326)
     bc_gdf.boundary.plot(ax=ax,edgecolor='black')
     
-    shapefile_path = '~/Downloads/prot_current_fire_points_202310241608/prot_current_fire_points.shp'
+    shapefile_path = '~/wxps-lx-compare/shape_files/prot_current_fire_points.shp'
     fires_gdf = gpd.read_file(shapefile_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[(fires_gdf['FIRE_CAUSE'] == 'Lightning') &
@@ -123,7 +123,153 @@ def haversine(lat1, lon1, lat2, lon2):
     dlat = lat2_rad - lat1_rad
     a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    distance = 6371 * c  # Radius of Earth in kilometers
+    distance = 6371 * c * 1000  # Radius of Earth in kilometers
     
     return distance
 
+def comp(data1_file,data2_file,zone):
+    '''
+    Compares two lighting strike data sets based on their fire zone, can chose one of the 6 fire centers in BC
+    NW == Northwest Fire Center
+    COAST == Costal Fire Center
+    CARIBOO == Cariboo Fire Center
+    KAM == Kamloops Fire Center
+    PG == Prince George Fire Center
+    SE == Southeast Fire Center
+    '''
+    aem = data_parser(data1_file) #extracting data from csv files
+    cldn = data_parser(data2_file)
+    
+    fire_point_path = '~/wxps-lx-compare/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
+    fires_gdf = gpd.read_file(fire_point_path)
+    fires_gdf = fires_gdf.to_crs(epsg=4326)
+    filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning']
+    
+    nw_zone_path = ''
+    coast_zone_path = ''
+    cari_zone_path = ''
+    kam_zone_path = ''
+    pg_zone_path = ''
+    se_zone_path = ''
+
+    #chosing fire zone
+    if zone == 'NW': 
+        zone_gdf = gpd.read_file(nw_zone_path)
+    elif zone == 'COAST':
+        zone_gdf = gpd.read_file(coast_zone_path)
+    elif zone == 'CARIBOO':
+        zone_gdf = gpd.read_file(cari_zone_path)
+    elif zone == 'KAM':
+        zone_gdf = gpd.read_file(kam_zone_path)
+    elif zone == 'PG':
+        zone_gdf = gpd.read_file(pg_zone_path)
+    elif zone == 'SE':
+        zone_gdf = gpd.read_file(se_zone_path)
+    else:
+        err('Invalid zone')
+    
+    #filtering fires in zone    
+    zone_gdf = zone_gdf.to_crs(epsg=4326)
+    zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
+    #filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry]
+    
+    '''
+    #filtering strikes in zone for both data sets 
+    aem_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(aem[2][i],aem[3][i])) for i in range(len(aem[2]))), crs='EPSG:4326')
+    cldn_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(cldn[2][i],cldn[3][i])) for i in range(len(aem[2]))), crs='EPSG:4326')
+    zone_aem =  gpd.sjoin(aem_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+    zone_cldn =  gpd.sjoin(cldn_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+    zone_aem_list = [(point.x, point.y) for point in zone_aem.geometry]
+    zone_cldn_list = [(point.x, point.y) for point in zone_cldn.geometry]
+    '''
+    
+    #calculating strike distance from fire start if strike distance < 5000 meters
+    aem_strikes = []
+    cldn_strikes = []
+    aem_dist = []
+    cldn_dist = []
+    aem_miss = 0
+    cldn_miss = 0
+    max_radius = 5000
+    for fire in range(len(zone_fires_gdf)):
+        end_date = zone_fires_gdf.IGNITN_DT.to_list()[fire]
+        start_date = end_date - timedelta(weeks=3)
+        coord = zone_fires_gdf.geometry.to_list()[fire]
+        lat = coord.x
+        long = coord.y
+        small_dist_aem = max_radius
+        small_dist_cldn = max_radius
+        
+        date_objects_aem = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in aem[0]]
+        date_objects_cldn = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in cldn[0]]
+        start_index1 = next(i for i, date in enumerate(date_objects_aem) if date >= start_date)
+        end_index1 = next(i for i, date in enumerate(date_objects_aem) if date > end_date)
+        start_index2 = next(i for i, date in enumerate(date_objects_cldn) if date >= start_date)
+        end_index2 = next(i for i, date in enumerate(date_objects_cldn) if date > end_date)
+        
+        aem_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(aem[2][i],aem[3][i])) for i in range(start_index1,end_index1)), crs='EPSG:4326')
+        cldn_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(cldn[2][i],cldn[3][i])) for i in range(start_index2,end_index2)), crs='EPSG:4326')
+        zone_aem =  gpd.sjoin(aem_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+        zone_cldn =  gpd.sjoin(cldn_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+        zone_aem_list = [(point.x, point.y) for point in zone_aem.geometry]
+        zone_cldn_list = [(point.x, point.y) for point in zone_cldn.geometry]
+        
+        for strike in zone_aem_list:
+            dist = haversine(lat, long, strike[0], strike[1])
+            if dist < small_dist_aem:
+                strike_loc = strike
+                small_dist_aem = dist
+        if small_dist_aem != max_radius:
+            aem_strikes.append(strike_loc)
+            aem_dist.append(small_dist_aem)
+        else:
+            aem_miss += 1
+            
+        for strike in zone_cldn_list:
+            dist = haversine(lat, long, strike[0], strike[1])
+            if dist < small_dist_cldn:
+                strike_loc = strike
+                small_dist_cldn = dist
+        if small_dist_cldn != max_radius:
+            cldn_strikes.append(strike_loc)
+            cldn_dist.append(small_dist_cldn)
+        else:
+            cldn_miss += 1
+    
+    '''
+    for i in range(len(filtered_fires)):
+        small_dist_aem = max_radius
+        index_aem = True
+        for n in range(len(zone_aem_list)):
+            dist = haversine(filtered_fires[i][0],filtered_fires[i][1], zone_aem_list[n][0],zone_aem_list[n][1])
+            if dist < small_dist_aem:
+                index_aem = n
+                small_dist_aem = dist
+        
+        if index_aem:
+            aem_miss + 1
+        else:
+            aem_strikes.append(zone_aem_list[index_aem])
+            aem_dist.append(small_dist_aem)
+        
+        small_dist_cldn = max_radius
+        index_cldn = True
+        for m in range(len(zone_cldn_list)):
+            dist = haversine(filtered_fires[i][0],filtered_fires[i][1], zone_cldn_list[n][0],zone_cldn_list[n][1])
+            if dist < small_dist_cldn:
+                index_cldn = m
+                small_dist_cldn = dist
+        
+        if index_cldn:
+            cldn_miss + 1
+        else:
+            cldn_strikes.append(zone_cldn_list[index_cldn])
+            cldn_dist.append(small_dist_cldn)
+        
+        percent = (i/len(filtered_fires))*100 
+        if int(percent) % 5 == 0:
+            print(f'{int(percent)}%')
+    
+    plt.hist(aem_dist)
+
+    '''
