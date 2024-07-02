@@ -24,8 +24,8 @@ def data_parser(file):
     
     return [time_list,type_list,lat_list,long_list,pc_list,ic_list,station_list]
 
-def plotter(file):
-    '''
+def plotter(file,start_date,end_date):
+    
     fig, ax = plt.subplots(figsize=(15, 15), subplot_kw={'projection': ccrs.PlateCarree()})
     
     ax.set_extent([-135, -114, 48.3, 60], crs=ccrs.PlateCarree())
@@ -37,23 +37,70 @@ def plotter(file):
     bc_gdf.boundary.plot(ax=ax,edgecolor='black')
     
     shapefile_path = '~/Downloads/prot_current_fire_points_202310241608/prot_current_fire_points.shp'
-    gdf = gpd.read_file(shapefile_path)
-    gdf = gdf.to_crs(epsg=4326)
-    filtered_gdf = gdf[gdf['FIRE_CAUSE'] == 'Lightning']
+    fires_gdf = gpd.read_file(shapefile_path)
+    fires_gdf = fires_gdf.to_crs(epsg=4326)
+    filtered_fires_gdf = fires_gdf[(fires_gdf['FIRE_CAUSE'] == 'Lightning') &
+                        (fires_gdf['IGNITN_DT'] <= end_date) &
+                        (fires_gdf['IGNITN_DT'] >= start_date)]
     
     # Plot the shapefile
-    filtered_gdf.plot(ax=ax,marker='s', color='orange', markersize=5,label='LCFs')
+    filtered_fires_gdf.plot(ax=ax,marker='s', color='orange', markersize=5,label='LCFs')
 
     # Add gridlines
     ax.gridlines(draw_labels=True)
-    '''
+    
     data = data_parser(file)
     time = data[0]
     lat = data[2]
     long = data[3]
     charge = data[4]
-    n = 0
+    strikes = []
+    charges = []
+    for i in range(len(time)):
+        if datetime.strptime(start_date, '%Y-%m-%d') <  datetime.strptime(time[i][0:-3], "%Y-%m-%dT%H:%M:%S.%f") < datetime.strptime(end_date, '%Y-%m-%d'):
+            strikes.append(Point(long[i],lat[i]))
+            charges.append((long[i],lat[i],charge[i]))
+        '''
+        elif datetime.strptime(time[i][0:-3], "%Y-%m-%dT%H:%M:%S.%f") > datetime.strptime(end_date, '%Y-%m-%d'):
+            break;
+        '''
     
+    # Create a GeoDataFrame from the points
+    
+    strikes_gdf = gpd.GeoDataFrame(geometry=strikes, crs='EPSG:4326')
+
+    # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
+    strikes_gdf.set_crs('EPSG:4326', inplace=True)
+ 
+    # Perform a spatial join to find points within the BC polygon
+    strikes_within_bc = gpd.sjoin(strikes_gdf, bc_gdf, how='inner',predicate='intersects')
+
+    filtered_strikes = [(point.x, point.y) for point in strikes_within_bc.geometry]
+ 
+    for i in range(len(filtered_strikes)):
+        for charge in charges:
+            if charge[0:2] == filtered_strikes[i]:
+                charge = charge[2]
+                break;
+            else:
+                charge = 'WRONG'
+        if charge < 0:
+            ax.plot(filtered_strikes[i][0], filtered_strikes[i][1], 'ro', markersize=5, color='blue', transform=ccrs.PlateCarree())
+        else:
+            ax.plot(filtered_strikes[i][0], filtered_strikes[i][1], 'ro', markersize=5, color='red', transform=ccrs.PlateCarree())
+
+    # Add a title
+    plt.title(f'Lighting strikes and LCFs {end_date}')
+    plt.legend()
+
+    # Show the plot
+    plt.savefig(f'Lighting strikes and LCFs {end_date}.png')
+    plt.clf()
+    print(len(filtered_strikes))
+    
+    
+    
+    '''
     while n <= len(long):
         end_date = datetime.strptime(time[n][:-3], "%Y-%m-%dT%H:%M:%S.%f") + timedelta(weeks=2)
         points = []
@@ -104,7 +151,7 @@ def plotter(file):
         # Show the plot
         plt.savefig(f'Lighting strikes and LCFs {end_date.date()}.png')
         plt.clf()
-    
+    '''
 
 def comp(file1,file2, strike_fires):
     data1 = data_parser(file1)
