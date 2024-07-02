@@ -173,16 +173,6 @@ def comp(data1_file,data2_file,zone):
     zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
     #filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry]
     
-    '''
-    #filtering strikes in zone for both data sets 
-    aem_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(aem[2][i],aem[3][i])) for i in range(len(aem[2]))), crs='EPSG:4326')
-    cldn_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(cldn[2][i],cldn[3][i])) for i in range(len(aem[2]))), crs='EPSG:4326')
-    zone_aem =  gpd.sjoin(aem_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
-    zone_cldn =  gpd.sjoin(cldn_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
-    zone_aem_list = [(point.x, point.y) for point in zone_aem.geometry]
-    zone_cldn_list = [(point.x, point.y) for point in zone_cldn.geometry]
-    '''
-    
     #calculating strike distance from fire start if strike distance < 5000 meters
     aem_strikes = []
     cldn_strikes = []
@@ -235,41 +225,3 @@ def comp(data1_file,data2_file,zone):
             cldn_dist.append(small_dist_cldn)
         else:
             cldn_miss += 1
-    
-    '''
-    for i in range(len(filtered_fires)):
-        small_dist_aem = max_radius
-        index_aem = True
-        for n in range(len(zone_aem_list)):
-            dist = haversine(filtered_fires[i][0],filtered_fires[i][1], zone_aem_list[n][0],zone_aem_list[n][1])
-            if dist < small_dist_aem:
-                index_aem = n
-                small_dist_aem = dist
-        
-        if index_aem:
-            aem_miss + 1
-        else:
-            aem_strikes.append(zone_aem_list[index_aem])
-            aem_dist.append(small_dist_aem)
-        
-        small_dist_cldn = max_radius
-        index_cldn = True
-        for m in range(len(zone_cldn_list)):
-            dist = haversine(filtered_fires[i][0],filtered_fires[i][1], zone_cldn_list[n][0],zone_cldn_list[n][1])
-            if dist < small_dist_cldn:
-                index_cldn = m
-                small_dist_cldn = dist
-        
-        if index_cldn:
-            cldn_miss + 1
-        else:
-            cldn_strikes.append(zone_cldn_list[index_cldn])
-            cldn_dist.append(small_dist_cldn)
-        
-        percent = (i/len(filtered_fires))*100 
-        if int(percent) % 5 == 0:
-            print(f'{int(percent)}%')
-    
-    plt.hist(aem_dist)
-
-    '''
