@@ -123,7 +123,7 @@ def haversine(lat1, lon1, lat2, lon2):
     dlat = lat2_rad - lat1_rad
     a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    distance = 6371 * c * 1000  # Radius of Earth in kilometers
+    distance = 6371 * c * 1000  # Radius of Earth in meters
     
     return distance
 
@@ -138,9 +138,8 @@ def comp(data1_file,data2_file,zone):
     SE == Southeast Fire Center
     '''
     aem = data_parser(data1_file) #extracting data from csv files
-    cldn = data_parser(data2_file)
-    
-    fire_point_path = '~/wxps-lx-compare/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
+    #cldn = data_parser(data2_file)
+    fire_point_path = '~/Documents/wps-lx-compare/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
     fires_gdf = gpd.read_file(fire_point_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning']
@@ -166,12 +165,20 @@ def comp(data1_file,data2_file,zone):
     elif zone == 'SE':
         zone_gdf = gpd.read_file(se_zone_path)
     else:
-        err('Invalid zone')
+        zone_gdf = gpd.read_file('~/Documents/wps-lx-compare/shape_files/bc_boundary_terrestrial_multipart.shp')
+        #err('Invalid zone')
     
     #filtering fires in zone    
     zone_gdf = zone_gdf.to_crs(epsg=4326)
     zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
-    #filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry]
+    filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry]
+    fire_dates = [datetime.strptime(date, '%Y-%m-%d').date() for date in zone_fires_gdf.IGNITN_DT]
+    
+    aem_points = [Point(aem[3][i],aem[2][i]) for i in range(len(aem[0]))]
+    aem_gdf = gpd.GeoDataFrame({'geometry': aem_points, 'date': aem[0]}, crs='EPSG:4326')
+    aem_filtered = gpd.sjoin(aem_gdf, zone_gdf,how='inner',predicate='intersects')
+    aem_filtered_points = [(point.x, point.y) for point in aem_filtered.geometry]
+    aem_filtered_dates = [datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f").date() for date in aem_filtered.date]
     
     #calculating strike distance from fire start if strike distance < 5000 meters
     aem_strikes = []
@@ -181,40 +188,46 @@ def comp(data1_file,data2_file,zone):
     aem_miss = 0
     cldn_miss = 0
     max_radius = 5000
-    for fire in range(len(zone_fires_gdf)):
-        end_date = zone_fires_gdf.IGNITN_DT.to_list()[fire]
+    for fire in range(30):
+        end_date = fire_dates[fire]  #datetime.strptime(zone_fires_gdf.IGNITN_DT.to_list()[fire], '%Y-%m-%d').date()
         start_date = end_date - timedelta(weeks=3)
-        coord = zone_fires_gdf.geometry.to_list()[fire]
-        lat = coord.x
-        long = coord.y
+        #coord = zone_fires_gdf.geometry.to_list()[fire]
+        lat = filtered_fires[fire][1]
+        long = filtered_fires[fire][0]
         small_dist_aem = max_radius
         small_dist_cldn = max_radius
         
-        date_objects_aem = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in aem[0]]
-        date_objects_cldn = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in cldn[0]]
-        start_index1 = next(i for i, date in enumerate(date_objects_aem) if date >= start_date)
-        end_index1 = next(i for i, date in enumerate(date_objects_aem) if date > end_date)
-        start_index2 = next(i for i, date in enumerate(date_objects_cldn) if date >= start_date)
-        end_index2 = next(i for i, date in enumerate(date_objects_cldn) if date > end_date)
+        # date_objects_aem = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in aem[0]]
+        # #date_objects_cldn = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in cldn[0]]
+        # start_index1 = next(i for i, date in enumerate(date_objects_aem) if date >= start_date)
+        # end_index1 = next(i for i, date in enumerate(date_objects_aem) if date > end_date)
+        #start_index2 = next(i for i, date in enumerate(date_objects_cldn) if date >= start_date)
+        #end_index2 = next(i for i, date in enumerate(date_objects_cldn) if date > end_date)
+        #aem_points = [(aem[2][i],aem[3][i]) for i in range(len(aem[0]))]
+        #cldn_points = [Point(cldn[2][i],cldn[3][i]) for i in range(start_index2,end_index2)]
+        #aem_strikes_gdf = gpd.GeoDataFrame(geometry=aem_points, crs='EPSG:4326')
+        #cldn_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(cldn[2][i],cldn[3][i])) for i in range(start_index2,end_index2)), crs='EPSG:4326')
+        #zone_aem =  gpd.sjoin(aem_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+        #zone_cldn =  gpd.sjoin(cldn_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
+        #zone_aem_list = [(point.x, point.y) for point in zone_aem.geometry]
+        #zone_cldn_list = [(point.x, point.y) for point in zone_cldn.geometry]
         
-        aem_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(aem[2][i],aem[3][i])) for i in range(start_index1,end_index1)), crs='EPSG:4326')
-        cldn_strikes_gdf = gpd.GeoDataFrame(geometry=((Point(cldn[2][i],cldn[3][i])) for i in range(start_index2,end_index2)), crs='EPSG:4326')
-        zone_aem =  gpd.sjoin(aem_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
-        zone_cldn =  gpd.sjoin(cldn_strikes_gdf, zone_gdf, how='inner',predicate='intersects')
-        zone_aem_list = [(point.x, point.y) for point in zone_aem.geometry]
-        zone_cldn_list = [(point.x, point.y) for point in zone_cldn.geometry]
-        
-        for strike in zone_aem_list:
-            dist = haversine(lat, long, strike[0], strike[1])
-            if dist < small_dist_aem:
+        for strike in range(len(aem_filtered_points)):
+            dist = haversine(lat, long, aem_filtered_points[strike][1], aem_filtered_points[strike][0])
+            date = aem_filtered_dates[strike]
+            if dist < small_dist_aem and start_date <= date <= end_date:
                 strike_loc = strike
                 small_dist_aem = dist
+            elif date > end_date:
+                break;
+                 
         if small_dist_aem != max_radius:
             aem_strikes.append(strike_loc)
             aem_dist.append(small_dist_aem)
         else:
             aem_miss += 1
-            
+
+        '''   
         for strike in zone_cldn_list:
             dist = haversine(lat, long, strike[0], strike[1])
             if dist < small_dist_cldn:
@@ -225,3 +238,9 @@ def comp(data1_file,data2_file,zone):
             cldn_dist.append(small_dist_cldn)
         else:
             cldn_miss += 1
+        '''
+        print(fire)
+        
+    plt.hist(aem_dist)
+    print(f'AEM missed: {aem_miss}')
+    print(f'AEM average dist: {np.mean(aem_dist)} +/- {np.std(aem_dist)}')
