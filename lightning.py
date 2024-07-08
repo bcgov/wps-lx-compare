@@ -245,8 +245,15 @@ def comp(data1_file,data2_file,zone):
     
     #trimming AEM and CLDN data to the fire center perimeter
     print('start AEM trim')
-    aem_points = [Point(aem[3][i],aem[2][i]) for i in range(len(aem[0]))]
-    aem_gdf = gpd.GeoDataFrame({'geometry': aem_points, 'date': aem[0]}, crs='EPSG:4326')
+    aem_points = []
+    aem_dates = []
+    for i in range(len(aem[0])):
+        if aem[1][i] == 0:
+            aem_points.append(Point(aem[3][i],aem[2][i]))
+            aem_dates.append(aem[0][i])
+        else:
+            continue;
+    aem_gdf = gpd.GeoDataFrame({'geometry': aem_points, 'date': aem_dates}, crs='EPSG:4326')
     aem_filtered = gpd.sjoin(aem_gdf, zone_gdf,how='inner',predicate='intersects')
     aem_filtered_points = [(point.x, point.y) for point in aem_filtered.geometry]
     aem_filtered_dates = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f").date() for date in aem_filtered.date]
@@ -312,7 +319,7 @@ def comp(data1_file,data2_file,zone):
     plt.hist(cldn_dist, alpha=0.3,bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss}')
     plt.xlabel('Distance from LCF (m)', fontsize=14)
     plt.ylabel('# of strikes', fontsize=14)
-    plt.title(f'AEM vs CLDN strike accuracy, fire center: {zone}',fontsize=18)
+    plt.title(f'AEM vs CLDN strike accuracy, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
     plt.legend(fontsize=14)
     plt.tight_layout()
     plt.savefig(f'{zone}_strike_data.png')
@@ -321,6 +328,4 @@ def comp(data1_file,data2_file,zone):
     
     print(f'CLDN missed: {cldn_miss}')
     print(f'CLDN average dist: {np.mean(cldn_dist)} +/- {np.std(cldn_dist)}')
-    
-    
     
