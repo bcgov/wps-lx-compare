@@ -234,6 +234,7 @@ def comp(data1_file,data2_file,zone):
     #trimming fires outside fire center perimeter 
     zone_gdf = gpd.read_file(zone_path)
     zone_gdf = zone_gdf.to_crs(epsg=4326)
+    zone_gdf.sindex
     zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
     filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry] #writing fire locations to a list
     fire_dates = [datetime.strptime(date, '%Y-%m-%d').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
