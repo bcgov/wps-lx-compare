@@ -210,7 +210,7 @@ def comp(data1_file,data2_file,zone):
     
     nw_zone_path = 'shape_files/nw_fc.shp'
     coast_zone_path = 'shape_files/coast_fc.shp'
-    cari_zone_path = 'hape_files/cariboo_fc.shp'
+    cari_zone_path = 'shape_files/cariboo_fc.shp'
     kam_zone_path = 'shape_files/kam_fc.shp'
     pg_zone_path = 'shape_files/pg_fc.shp'
     se_zone_path = 'shape_files/se_fc.shp'
@@ -301,6 +301,7 @@ def comp(data1_file,data2_file,zone):
             cldn_dist.append(small_dist_cldn)
         else:
             cldn_miss += 1
+        
         percent = round((fire/len(filtered_fires))*100,0)
         if int(percent) % 5 == 0:
             print(f'{int(percent)}%' )
