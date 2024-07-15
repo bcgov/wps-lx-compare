@@ -345,12 +345,12 @@ def comp(data1_file,data2_file,zone):
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
     
 
-data_sw = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','SE')
-data_nw = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','NW')
-data_car = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','CARIBOO')
-data_coast = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','COAST')
-data_kam = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','KAM')
-data_pg = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','PG')
+data_sw = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','SE')
+data_nw = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','NW')
+data_car = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','CARIBOO')
+data_coast = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','COAST')
+data_kam = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','KAM')
+data_pg = comp('~/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','~/Documents/wps-lx-compare/cldn.csv','PG')
 data_both = data_sw[0] + data_nw[0] + data_car[0] + data_coast[0] + data_kam[0] + data_pg[0]
 data_aem = data_sw[1] + data_nw[1] + data_car[1] + data_coast[1] + data_kam[1] + data_pg[1]
 data_cldn = data_sw[2] + data_nw[2] + data_car[2] + data_coast[2] + data_kam[2] + data_pg[2]
