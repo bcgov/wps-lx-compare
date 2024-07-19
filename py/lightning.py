@@ -208,12 +208,12 @@ def comp(data1_file,data2_file,zone):
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning'] #extracting lighting caused fires
     
-    nw_zone_path = 'shape_files/nw_fc.shp'
-    coast_zone_path = 'shape_files/coast_fc.shp'
-    cari_zone_path = 'shape_files/cariboo_fc.shp'
-    kam_zone_path = 'shape_files/kam_fc.shp'
-    pg_zone_path = 'shape_files/pg_fc.shp'
-    se_zone_path = 'shape_files/se_fc.shp'
+    nw_zone_path = '~/Documents/wps-lx-compare/shape_files/nw_fc.shp'
+    coast_zone_path = '~/Documents/wps-lx-compare/shape_files/coast_fc.shp'
+    cari_zone_path = '~/Documents/wps-lx-compare/shape_files/cariboo_fc.shp'
+    kam_zone_path = '~/Documents/wps-lx-compare/shape_files/kam_fc.shp'
+    pg_zone_path = '~/Documents/wps-lx-compare/shape_files/pg_fc.shp'
+    se_zone_path = '~/Documents/wps-lx-compare/shape_files/se_fc.shp'
     
     #choosing a fire centers shape file
     if zone == 'NW': 
@@ -231,7 +231,7 @@ def comp(data1_file,data2_file,zone):
     else:
         err('Invalid zone')
     
-    #trimming fires outside fire center perimeter 
+    #trimming fires outside selected fire center perimeter 
     zone_gdf = gpd.read_file(zone_path)
     zone_gdf = zone_gdf.to_crs(epsg=4326)
     zone_gdf.sindex
@@ -247,6 +247,8 @@ def comp(data1_file,data2_file,zone):
     print('start AEM trim')
     aem_points = []
     aem_dates = []
+    
+    #remove cloud-to-cloud strikes
     for i in range(len(aem[0])):
         if aem[1][i] == 0:
             aem_points.append(Point(aem[3][i],aem[2][i]))
@@ -280,27 +282,30 @@ def comp(data1_file,data2_file,zone):
     cldn_det = []
     cldn_det = []
     both_miss = []
-    for fire in range(len(filtered_fires)):
-        end_date = fire_dates[fire]
+    for fire in range(len(filtered_fires)): #searching through fire points in fire center perimeter
+        end_date = fire_dates[fire] #fire start date, end date fore lightning search
         start_date = end_date - timedelta(weeks=3) #only taking strikes that took place within 3 weeks prior to ignition date
         lat = filtered_fires[fire][1]
         long = filtered_fires[fire][0]
-        small_dist_aem = max_radius
+        smallest_dist_aem = max_radius
         small_dist_cldn = max_radius
 
+        #Checks strike distance from lightning caused fire (LCF) for AEM data and keeps smallest distance
         for strike in range(len(aem_filtered_points)): 
             dist = haversine(lat, long, aem_filtered_points[strike][1], aem_filtered_points[strike][0])
             date =  aem_filtered_dates[strike]
-            if dist < small_dist_aem and start_date <= date <= end_date:
-                small_dist_aem = dist
-            elif date > end_date:
+            if dist < smallest_dist_aem and start_date <= date <= end_date:
+                smallest_dist_aem = dist
+            elif date > end_date: #breaks if the strike date goes past ignition date
                 break;
-                 
-        if small_dist_aem != max_radius:
-            aem_dist.append(small_dist_aem)
+            
+        #Only takes stikes within 5000 meters      
+        if smallest_dist_aem != max_radius:
+            aem_dist.append(smallest_dist_aem)
         else:
             aem_miss += 1
-
+            
+        #Checks strike distance from lightning caused fire (LCF) for CLDN data and keeps smallest distance
         for strike in range(len(cldn_filtered_points)): 
             dist = haversine(lat, long, cldn_filtered_points[strike][1], cldn_filtered_points[strike][0])
             date =  cldn_filtered_dates[strike]
@@ -314,96 +319,34 @@ def comp(data1_file,data2_file,zone):
         else:
             cldn_miss += 1
             
-        if small_dist_aem != max_radius and small_dist_cldn != max_radius:
-            both_det.append((long,lat))
+        #Sorts LCFs into 4 catagories: both sensors detected a strike, only AEM detected, only CLDN detected, both sensors did not detect
+        if smallest_dist_aem != max_radius and small_dist_cldn != max_radius:
+            both_det.append((long,lat)) #lat and long of the LCF
             
-        elif small_dist_aem != max_radius and small_dist_cldn == max_radius:
+        elif smallest_dist_aem != max_radius and small_dist_cldn == max_radius:
             aem_det.append((long,lat))
         
-        elif small_dist_aem == max_radius and small_dist_cldn != max_radius:
+        elif smallest_dist_aem == max_radius and small_dist_cldn != max_radius:
             cldn_det.append((long,lat))
         
         else:
             both_miss.append((long,lat))
         
-        
+        #progress meter
         percent = round((fire/len(filtered_fires))*100,0)
         if int(percent) % 5 == 0:
             print(f'{int(percent)}%' )
 
-    #plotting
+    #plotting histograms of distances of accepted stikes for all fire in given fire center
     plt.figure(figsize=(15,15))
-    plt.hist(aem_dist, alpha=0.5, bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss}')
-    plt.hist(cldn_dist, alpha=0.3,bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss}')
+    plt.hist(aem_dist, alpha=0.5, bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs')
+    plt.hist(cldn_dist, alpha=0.3,bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs')
     plt.xlabel('Distance from LCF (m)', fontsize=14)
     plt.ylabel('# of strikes', fontsize=14)
-    plt.title(f'AEM vs CLDN strike accuracy, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
+    plt.title(f'Strike counts within 5km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
     plt.legend(fontsize=14)
     plt.tight_layout()
     plt.savefig(f'{zone}_strike_data.png')
     plt.clf()
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
     
-
-data_sw = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','SE')
-data_nw = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','NW')
-data_car = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','CARIBOO')
-data_coast = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','COAST')
-data_kam = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','KAM')
-data_pg = comp('/Users/sterlingvondehn/Downloads/EarthNetworks_BCWS_LX_2023 1.csv','/Users/sterlingvondehn/Documents/wps-lx-compare/cldn.csv','PG')
-data_both = data_sw[0] + data_nw[0] + data_car[0] + data_coast[0] + data_kam[0] + data_pg[0]
-data_aem = data_sw[1] + data_nw[1] + data_car[1] + data_coast[1] + data_kam[1] + data_pg[1]
-data_cldn = data_sw[2] + data_nw[2] + data_car[2] + data_coast[2] + data_kam[2] + data_pg[2]
-data_miss = data_sw[3] + data_nw[3] + data_car[3] + data_coast[3] + data_kam[3] + data_pg[3]
-aem_dist = data_sw[4] + data_nw[4] + data_car[4] + data_coast[4] + data_kam[4] + data_pg[4]
-cldn_dist = data_sw[5] + data_nw[5] + data_car[5] + data_coast[5] + data_kam[5] + data_pg[5]
-aem_miss = data_sw[6] + data_nw[6] + data_car[6] + data_coast[6] + data_kam[6] + data_pg[6]
-cldn_miss = data_sw[7] + data_nw[7] + data_car[7] + data_coast[7] + data_kam[7] + data_pg[7]
-
-plt.figure(figsize=(15,15))
-plt.hist(aem_dist, alpha=0.5, bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'AEM, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss}')
-plt.hist(cldn_dist, alpha=0.3,bins=np.linspace(0, 5000, 51), edgecolor='black', label=f'CLDN, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss}')
-plt.xlabel('Distance from LCF (m)', fontsize=14)
-plt.ylabel('# of strikes', fontsize=14)
-plt.title(f'AEM vs CLDN strike accuracy for BC',fontsize=18)
-plt.legend(fontsize=14)
-plt.tight_layout()
-plt.savefig(f'BC_strike_data.png')
-plt.clf()
-
-both = 0
-aem = 0
-cldn = 0
-miss = 0
-
-fig, ax = plt.subplots(figsize=(15, 15), subplot_kw={'projection': ccrs.PlateCarree()})
-ax.set_extent([-136, -114, 48.3, 60.5], crs=ccrs.PlateCarree())
-
-bc_gdf = gpd.read_file('shape_files/bc_boundary_terrestrial_multipart.shp')
-bc_gdf = bc_gdf.to_crs(epsg=4326)
-bc_gdf.boundary.plot(ax=ax,edgecolor='black')
-
-for long, lat in data_both:
-    both +=1
-    ax.plot(long,lat, color='green', marker='o',markersize=6, transform=ccrs.PlateCarree())
-
-for long, lat in data_aem:
-    aem += 1
-    ax.plot(long,lat, color='orange',marker='o',markersize=6,transform=ccrs.PlateCarree())
-    
-for long, lat in data_cldn:
-    cldn += 1
-    ax.plot(long,lat, color='red',marker='o',markersize=6,transform=ccrs.PlateCarree())
-    
-for long, lat in data_miss:
-    miss += 1
-    ax.plot(long,lat, color='black',marker='o',markersize=6,transform=ccrs.PlateCarree())
-
-ax.scatter(np.nan,np.nan, marker='o', color='green', label=f'Both sensors detected: {both}')
-ax.scatter(np.nan,np.nan, marker='o', color='orange', label=f'Just AEM detected: {aem}')
-ax.scatter(np.nan,np.nan, marker='o', color='red', label=f'Just CLDN detected: {cldn}')
-ax.scatter(np.nan,np.nan, marker='o', color='black', label=f'Both sensors missed: {miss}')
-plt.title('LCFs sorted by detection sensor',fontsize=14)
-plt.legend(fontsize=14)
-plt.tight_layout()
-plt.savefig('strike_detection.png')    
