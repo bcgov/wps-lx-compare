@@ -8,7 +8,7 @@ import numpy as np
 import cartopy.crs as ccrs
 import geopandas as gpd
 
-max_radius = 2000
+max_radius = 2000 #define a max radius
 #loads data for all fire centers and combines them for all of BC
 data_se = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','SE', max_radius)
 data_nw = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','NW', max_radius)

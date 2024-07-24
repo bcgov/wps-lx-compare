@@ -1,3 +1,7 @@
+'''
+Compares the AEM lighting detection sensors to the current CLDN network. The main function, comp, takes CSV's of the strike data for both sensors, a fire center code, and a max radius to determin if a strike caused the lightning caused fire (LCF). It also takes an optional argument to perform the comparison on origin and cause fires only.
+>>> comp('../lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', 1000)
+'''
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -7,13 +11,15 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import math 
-#from misc import err
 import os
 import pickle as pickle
 
 
 
 def data_parser_aem(file):
+    '''
+    Parses the data from the AEM CSV
+    '''
     df = pd.read_csv(file)
     time_list = df.iloc[:, 0].tolist()
     type_list = df.iloc[:, 1].tolist()
@@ -26,6 +32,9 @@ def data_parser_aem(file):
     return [time_list,type_list,lat_list,long_list,pc_list,ic_list,station_list]
 
 def data_parser_cldn(file):
+    '''
+    Parses the data for the CLDN CSV
+    '''
     df = pd.read_csv(file)
     time_list = df.iloc[:, 7].tolist()
     polarity_list = df.iloc[:, 4].tolist()
@@ -36,11 +45,17 @@ def data_parser_cldn(file):
     return [time_list,charge_list,lat_list,long_list,polarity_list]
 
 def foc_lcf(file):
+    '''
+    Makes a list of origin and causefires
+    '''
     df = pd.read_csv(file, encoding='utf-8')  # or errors='replace'
     fire_list = df.iloc[:,0].tolist()
     return fire_list 
 
 def plotter(file,start_date,end_date):
+    '''
+    Plots the strike data for a givin date range. Plots strikes based on polarity and charge
+    '''
     
     fig, ax = plt.subplots(figsize=(15, 15), subplot_kw={'projection': ccrs.PlateCarree()})
     
