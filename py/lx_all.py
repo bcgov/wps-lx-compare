@@ -10,13 +10,13 @@ import geopandas as gpd
 
 max_radius = 2000 #define a max radius
 #loads data for all fire centers and combines them for all of BC
-data_se = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','SE', max_radius)
-data_nw = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','NW', max_radius)
-data_car = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','CARIBOO', max_radius)
-data_coast = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','COAST', max_radius)
-data_kam = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','KAM', max_radius)
-data_pg = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','PG', max_radius)
-data_bc = comp('../lx_data/data/EarthNetworks_BCWS_LX_2023.csv','../lx_data/data/cldn.csv','BC', max_radius)
+data_se = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', max_radius)
+data_nw = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','NW', max_radius)
+data_car = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','CARIBOO', max_radius)
+data_coast = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','COAST', max_radius)
+data_kam = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','KAM', max_radius)
+data_pg = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','PG', max_radius)
+data_bc = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','BC', max_radius)
 data_both = data_se[0] + data_nw[0] + data_car[0] + data_coast[0] + data_kam[0] + data_pg[0]
 data_aem = data_se[1] + data_nw[1] + data_car[1] + data_coast[1] + data_kam[1] + data_pg[1]
 data_cldn = data_se[2] + data_nw[2] + data_car[2] + data_coast[2] + data_kam[2] + data_pg[2]
@@ -61,4 +61,4 @@ ax.scatter(np.nan,np.nan, marker='o', color='black', label=f'Both sensors missed
 plt.title('LCFs ignition points colored by sensor detection combinations',fontsize=14)
 plt.legend(fontsize=14)
 plt.tight_layout()
-plt.savefig(f'plots/{max_radius}_strike_detection.png')    
+plt.savefig(f'plots/{max_radius}-strike-detection.png')    

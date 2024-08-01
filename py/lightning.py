@@ -303,8 +303,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             date =  aem_filtered_dates[strike]
             if dist < smallest_dist_aem and start_date <= date <= end_date:
                 smallest_dist_aem = dist
-            elif date > end_date: #breaks if the strike date goes past ignition date
-                break;
+            # elif date > end_date: #breaks if the strike date goes past ignition date
+            #     break;
             
         #Only takes stikes within 5000 meters      
         if smallest_dist_aem != max_radius:
@@ -318,8 +318,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             date =  cldn_filtered_dates[strike]
             if dist < small_dist_cldn and start_date <= date <= end_date:
                 small_dist_cldn = dist
-            elif date > end_date:
-                break;
+            # elif date > end_date:
+            #     break;
                  
         if small_dist_cldn != max_radius:
             cldn_dist.append(small_dist_cldn)
@@ -345,16 +345,43 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             print(f'{int(percent)}%' )
 
     #plotting histograms of distances of accepted stikes for all fire in given fire center
-    plt.figure(figsize=(15,15))
-    bins = np.linspace(0, max_radius, 25)
-    plt.hist([aem_dist,cldn_dist], hatch='/', rwidth=1,bins=bins, color=['red','black'],histtype='bar',edgecolor='black', label=[f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs',f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs'])
+    fig, ax1 = plt.subplots(figsize=(15,15))
+    bins = np.linspace(0, max_radius, 23)
+    ax1.hist([aem_dist,cldn_dist], hatch='/', rwidth=1,bins=bins, color=['red','black'],histtype='bar',edgecolor='black', label=[f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs',f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs'])
 
-    plt.xlabel('Distance from LCF (m)', fontsize=14)
-    plt.ylabel('# of strikes', fontsize=14)
-    plt.title(f'Strike counts within 5km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
-    plt.legend(fontsize=14)
+    sum_bins = np.linspace(0,max_radius,1000)
+    data_aem = np.histogram(aem_dist, bins=sum_bins)
+    data_cldn = np.histogram(cldn_dist,bins=sum_bins)
+    ax1.set_xlabel('Distance from LCF (m)', fontsize=14)
+    ax1.set_ylabel('# of strikes', fontsize=14)
+
+    counts_aem = data_aem[0]
+    counts_cldn = data_cldn[0]
+
+    aem_sum = 0
+    cldn_sum = 0
+    aem_sum_list = []
+    cldn_sum_list = []
+    aem_dens = []
+    cldn_dens = []
+    for i in range(len(sum_bins)-1):
+        aem_sum += counts_aem[i]
+        cldn_sum += counts_cldn[i]
+        aem_sum_list.append(aem_sum)
+        cldn_sum_list.append(cldn_sum)
+        aem_dens.append(aem_sum/sum_bins[i])
+        cldn_dens.append(cldn_sum/sum_bins[i])
+    
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Strike sum', fontsize=14)
+    ax2.plot(sum_bins[:-1], aem_sum_list, color='orange', linewidth=4, label='AEM sum')
+    ax2.plot(sum_bins[:-1], cldn_sum_list, color='grey', linewidth=4, label='CLDN sum')
+
+    ax1.legend(fontsize=14)
+    ax2.legend(fontsize=14)
+    plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
     plt.tight_layout()
-    plt.savefig(f'plots/{max_radius}_{zone}_strike_data.png')
+    plt.savefig(f'plots/{max_radius}-{zone}-strike-data.png')
     plt.clf()
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
     
