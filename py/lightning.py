@@ -209,9 +209,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
     fire_names = [name for name in zone_fires_gdf.FIRE_NUM]
     filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry] #writing fire locations to a list
-    fire_dates = [datetime.strptime(str(date).strip(' 00:00:00'), '%Y-%m-%d').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
+    fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
 
-    #fig, ax = plt.subplots(figsize=(15, 15), subplot_kw={'projection': ccrs.PlateCarree()})
 
     #updates filtered fires if FOC comparison is set to true
     if foc_on == True:
@@ -317,7 +316,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             aem_dist.append(smallest_dist_aem)
         else:
             aem_miss += 1
-            
+    
         #Checks strike distance from lightning caused fire (LCF) for CLDN data and keeps smallest distance
         for strike in range(len(sorted_cldn_points)): 
             dist = haversine(lat, long, sorted_cldn_points[strike][1], sorted_cldn_points[strike][0])
@@ -349,7 +348,6 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         percent = round((fire/len(filtered_fires))*100,0)
         if int(percent) % 5 == 0:
             print(f'{int(percent)}%' )
-    
     #plotting histograms of distances of accepted stikes for all fire in given fire center
     fig, ax1 = plt.subplots(figsize=(15,15))
     bins = np.linspace(0, max_radius, 23)
