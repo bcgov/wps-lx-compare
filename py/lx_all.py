@@ -8,7 +8,7 @@ import numpy as np
 import cartopy.crs as ccrs
 import geopandas as gpd
 
-max_radius = 2000 #define a max radius
+max_radius = 1000 #define a max radius
 #loads data for all fire centers and combines them for all of BC
 data_se = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', max_radius)
 data_nw = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','NW', max_radius)
@@ -61,4 +61,4 @@ ax.scatter(np.nan,np.nan, marker='o', color='black', label=f'Both sensors missed
 plt.title('LCFs ignition points colored by sensor detection combinations',fontsize=14)
 plt.legend(fontsize=14)
 plt.tight_layout()
-plt.savefig(f'plots/{max_radius}-strike-detection.png')    
+plt.savefig(f'plots/{max_radius}data/LCFs/{max_radius}m-strike-detection.png')    

@@ -15,7 +15,6 @@ import os
 import pickle as pickle
 
 
-
 def data_parser_aem(file):
     '''
     Parses the data from the AEM CSV
@@ -209,6 +208,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     zone_fires_gdf = gpd.sjoin(filtered_fires_gdf, zone_gdf, how='inner',predicate='intersects')
     fire_names = [name for name in zone_fires_gdf.FIRE_NUM]
     filtered_fires = [(point.x, point.y) for point in zone_fires_gdf.geometry] #writing fire locations to a list
+    # fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in zone_fires_gdf.IGNITN_DT]
     fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
 
 
@@ -245,7 +245,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         aem_gdf = gpd.GeoDataFrame({'geometry': aem_points, 'date': aem_dates}, crs='EPSG:4326')
         aem_filtered = gpd.sjoin(aem_gdf, zone_gdf,how='inner',predicate='intersects')
         aem_filtered_points = [(point.x, point.y) for point in aem_filtered.geometry]
-        aem_filtered_dates = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f").date() for date in aem_filtered.date]
+        # aem_filtered_dates = [datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") for date in aem_filtered.date]
+        aem_filtered_dates = [(datetime.strptime(date[0:-3], "%Y-%m-%dT%H:%M:%S.%f") - timedelta(hours=7)).date() for date in aem_filtered.date]
         data = [aem_filtered_points, aem_filtered_dates]
         with open(f'pickles/aem_{zone}.pkl','wb') as f:
             pickle.dump(data, f)
@@ -266,6 +267,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         cldn_gdf = gpd.GeoDataFrame({'geometry': cldn_points, 'date': cldn[0]}, crs='EPSG:4326')
         cldn_filtered = gpd.sjoin(cldn_gdf, zone_gdf,how='inner',predicate='intersects')
         cldn_filtered_points = [(point.x, point.y) for point in cldn_filtered.geometry]
+        # cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S") for date in cldn_filtered.date]
         cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S").date() for date in cldn_filtered.date]
         data = [cldn_filtered_points, cldn_filtered_dates]
         with open(f'pickles/cldn_{zone}.pkl','wb') as f:
@@ -349,8 +351,14 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         if int(percent) % 5 == 0:
             print(f'{int(percent)}%' )
     #plotting histograms of distances of accepted stikes for all fire in given fire center
+    if not os.path.exists(f'plots/{max_radius}data'):
+        os.mkdir(f'plots/{max_radius}data')
+    if not os.path.exists(f'plots/{max_radius}data/LCFS'):
+        os.mkdir(f'plots/{max_radius}data/LCFS')
+
     fig, ax1 = plt.subplots(figsize=(15,15))
     bins = np.linspace(0, max_radius, 23)
+    ax1.set_xlim(0, max_radius)
     ax1.hist([aem_dist,cldn_dist], hatch='/', rwidth=1,bins=bins, color=['red','black'],histtype='bar',edgecolor='black', label=[f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs',f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs'])
 
     sum_bins = np.linspace(0,max_radius,1000)
@@ -378,13 +386,16 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     
     ax2 = ax1.twinx()
     ax2.set_ylabel('Strike sum', fontsize=14)
-    ax2.plot(sum_bins[:-1], aem_sum_list, color='orange', linewidth=4, label='AEM sum')
-    ax2.plot(sum_bins[:-1], cldn_sum_list, color='grey', linewidth=4, label='CLDN sum')
+    ax2.set_ylim(bottom=0, top=max(max(aem_sum_list), max(cldn_sum_list)) * 1.1)
+    ax2.plot(sum_bins[:-1], aem_sum_list, color='white', linewidth=5)
+    ax2.plot(sum_bins[:-1], cldn_sum_list, color='white', linewidth=5)
+    ax2.plot(sum_bins[:-1], aem_sum_list, color='red', linewidth=2.5, label='AEM sum')
+    ax2.plot(sum_bins[:-1], cldn_sum_list, color='black', linewidth=2.5, label='CLDN sum')
 
     ax1.legend(fontsize=14)
-    ax2.legend(fontsize=14)
+    ax2.legend(fontsize=14, loc='upper left')
     plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
     plt.tight_layout()
-    plt.savefig(f'plots/{max_radius}-{zone}-strike-data.png')
+    plt.savefig(f'plots/{max_radius}data/{max_radius}m-{zone}-strike-data.png')
     plt.clf()
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
