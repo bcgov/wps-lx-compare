@@ -65,13 +65,16 @@ plt.tight_layout()
 plt.savefig(f'plots/{max_radius}data/LCFs/{max_radius}m-strike-detection.png')
 plt.clf()
 
+# #plotting bar graphs for each detection stat 
 # zones = ['BC','PG', 'NW', 'Cariboo', 'Coast', 'Kam', 'SE']
+# #defining data
 # zone_vals_both = [len(data_bc[0]),len(data_pg[0]),len(data_nw[0]),len(data_car[0]), len(data_coast[0]), len(data_kam[0]), len(data_se[0])]
 # zone_vals_aem = [len(data_bc[1]),len(data_pg[1]),len(data_nw[1]),len(data_car[1]), len(data_coast[1]), len(data_kam[1]), len(data_se[1])]
 # zone_vals_cldn = [len(data_bc[2]),len(data_pg[2]),len(data_nw[2]),len(data_car[2]), len(data_coast[2]), len(data_kam[2]), len(data_se[2])]
 # zone_vals_none = [len(data_bc[3]),len(data_pg[3]),len(data_nw[3]),len(data_car[3]), len(data_coast[3]), len(data_kam[3]), len(data_se[3])]
 # colors = ['red', 'blue', 'green', 'purple', 'orange', 'cyan', 'magenta']
 
+# #plotting
 # fig, axs = plt.subplots(2,2,figsize=(15, 15))
 # axs[0,0].set_title('Both sensors detected')
 # axs[0,0].set_ylabel('# of fires')
@@ -85,10 +88,13 @@ plt.clf()
 # axs[1,1].set_title('Both sensors missed')
 # axs[1,1].set_ylabel('# of fires')
 # axs[1,1].bar(zones,zone_vals_none,color=colors)
-# plt.show()
+# plt.tight_layout()
+# plt.savefig(f'plots/{max_radius}data/LCFs/{max_radius}m-zone_hist.png')
 
+#plotting bar graphs for each fire centers detection stats
 fig = plt.figure(figsize=(12, 16))
 
+#defining subplots
 gs = gridspec.GridSpec(4, 2, height_ratios=[1, 1, 1, 1], width_ratios=[1, 1], hspace=0.4, wspace=0.3)
 ax1 = plt.subplot(gs[0, 0])
 ax2 = plt.subplot(gs[0, 1])
@@ -98,6 +104,7 @@ ax5 = plt.subplot(gs[2, 0])
 ax6 = plt.subplot(gs[2, 1])
 ax7 = plt.subplot(gs[3, 0:2])
 
+#calculating bars
 names = ['Hit', 'Only AEM', 'Only CLDN', 'Miss']
 bc = [len(data_bc[0]), len(data_bc[1]), len(data_bc[2]), len(data_bc[3])]
 pg = [len(data_pg[0]), len(data_pg[1]), len(data_pg[2]), len(data_pg[3])]
@@ -108,6 +115,7 @@ kam = [len(data_kam[0]), len(data_kam[1]), len(data_kam[2]), len(data_kam[3])]
 se = [len(data_se[0]), len(data_se[1]), len(data_se[2]), len(data_se[3])]
 colors = ['green', 'orange', 'red', 'black']
 
+#plotting
 ax1.set_title('South East')
 ax1.set_ylabel('# of fires')
 ax1.bar(names,se,color=colors)
