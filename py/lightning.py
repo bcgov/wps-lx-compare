@@ -392,7 +392,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     ax2.plot(sum_bins[:-1], aem_sum_list, color='red', linewidth=2.5, label='AEM sum')
     ax2.plot(sum_bins[:-1], cldn_sum_list, color='black', linewidth=2.5, label='CLDN sum')
 
-    ax1.legend(fontsize=14)
+    ax1.legend(fontsize=14, loc='upper right')
     ax2.legend(fontsize=14, loc='upper left')
     plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
     plt.tight_layout()
