@@ -287,6 +287,16 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     sorted_cldn = sorted(combined_cldn)
     sorted_cldn_dates, sorted_cldn_points = zip(*sorted_cldn)
 
+    aem_strikes = 0
+    cldn_strikes = 0
+    for strike in sorted_aem_dates:
+        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+            aem_strikes += 1
+    
+    for strike in sorted_cldn_dates:
+        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+            cldn_strikes += 1
+
     #calculating strike distance from fire start if strike distance < 5000 meters
     aem_dist = []
     cldn_dist = []
@@ -297,9 +307,12 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     cldn_det = []
     cldn_det = []
     both_miss = []
+    lcfs = 0
     for fire in range(len(filtered_fires)): #searching through fire points in fire center perimeter
         end_date = fire_dates[fire] #fire start date, end date fore lightning search
         start_date = end_date - timedelta(weeks=3) #only taking strikes that took place within 3 weeks prior to ignition date
+        if start_date < datetime.strptime('2023-08-15', '%Y-%m-%d').date() or end_date > datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+            continue
         lat = filtered_fires[fire][1]
         long = filtered_fires[fire][0]
         smallest_dist_aem = max_radius
@@ -350,6 +363,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         percent = round((fire/len(filtered_fires))*100,0)
         if int(percent) % 5 == 0:
             print(f'{int(percent)}%' )
+        lcfs += 1
     #plotting histograms of distances of accepted stikes for all fire in given fire center
     if not os.path.exists(f'plots/{max_radius}data'):
         os.mkdir(f'plots/{max_radius}data')
@@ -359,7 +373,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     fig, ax1 = plt.subplots(figsize=(15,15))
     bins = np.linspace(0, max_radius, 23)
     ax1.set_xlim(0, max_radius)
-    ax1.hist([aem_dist,cldn_dist], hatch='/', rwidth=1,bins=bins, color=['red','black'],histtype='bar',edgecolor='black', label=[f'AEM, strikes detected: {len(aem_filtered_points)}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs',f'CLDN, strikes detected: {len(cldn_filtered_points)}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs'])
+    ax1.hist([aem_dist,cldn_dist], hatch='/', rwidth=1,bins=bins, color=['red','black'],histtype='bar',edgecolor='black', label=[f'AEM, strikes detected: {aem_strikes}, average dist: {round(np.mean(aem_dist),1)} +/- {round(np.std(aem_dist),1)} m, missed: {aem_miss} LCFs',f'CLDN, strikes detected: {cldn_strikes}, average dist: {round(np.mean(cldn_dist),1)} +/- {round(np.std(cldn_dist),1)} m, missed: {cldn_miss} LCFs'])
 
     sum_bins = np.linspace(0,max_radius,1000)
     data_aem = np.histogram(aem_dist, bins=sum_bins)
@@ -394,8 +408,26 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
 
     ax1.legend(fontsize=14, loc='upper right')
     ax2.legend(fontsize=14, loc='upper left')
-    plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {len(filtered_fires)}',fontsize=18)
+    plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {lcfs}',fontsize=18)
     plt.tight_layout()
     plt.savefig(f'plots/{max_radius}data/{max_radius}m-{zone}-strike-data.png')
     plt.clf()
+
+    data = [zone, lcfs, aem_strikes, round(np.mean(aem_dist),1), aem_miss, cldn_strikes, round(np.mean(cldn_dist),1), cldn_miss]
+
+    if os.path.exists(f'pickles/{max_radius}_data.pkl'):
+        with open(f'pickles/{max_radius}_data.pkl','rb') as f:
+            my_list = pickle.load(f)
+        if len(my_list) > 7:
+            my_list = []
+            my_list.append(data)
+        else:
+            my_list.append(data)
+    else:
+        my_list = []
+        my_list.append(data)
+
+    with open(f'pickles/{max_radius}_data.pkl','wb') as f:
+            pickle.dump(my_list, f)
+
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]

@@ -1,5 +1,6 @@
 '''20240620 initial template to be modified accordingly'''
 import os
+import pickle
 
 # def generate_slide_frames(title, filenames, comments):
 #     # Initialize an empty string to accumulate LaTeX code
@@ -53,9 +54,9 @@ def generate_slide_frames(title, filenames, datas, titles):
                         \hline
                         \multicolumn{{1}}{{|c|}}{{Field}} & \multicolumn{{1}}{{|c|}}{{AEM}} & \multicolumn{{1}}{{|c|}}{{CLDN}} \\
                         \hline
-                        Strikes detected & {data[1]} & {data[4]} \\
+                        \# LX ({slide_number}) & {data[1]} & {data[4]} \\
                         Average distance (m) & {data[2]} & {data[5]} \\
-                        Missed & {data[3]} & {data[6]} \\
+                        \# LCF w/o LX match & {data[3]} & {data[6]} \\
                         \hline
                     \end{{tabular}}
                 \end{{table}}
@@ -116,37 +117,121 @@ slide_set8 = slide_list[7]
 
 titles = ['BC', 'Cariboo', 'Coast', 'Kamloops', 'North West', 'Prince George', 'South East']
 
-data_5000 = [[1610, 228308, 1366.8, 190, 280117, 978.7, 158], [
-167, 22868, 1098.9, 17, 21876, 875.9, 9], [
-192, 7442, 1422.6, 32, 6503, 1371.3, 32], [
-282, 22474, 1231.3, 25, 18022, 1001.1, 30], [
-185, 18725, 1463.8, 22, 32917, 907.4, 14], [
-539, 125712, 1429.1, 76, 174992, 885.1, 47], [
-245, 31087, 1456.1, 19, 25780, 1009.9, 26]]
+order = ['BC', 'CARIBOO', 'COAST', 'KAM', 'NW', 'PG', 'SE']
+with open(f'pickles/5000_data.pkl','rb') as f:
+    data_5000_nonsort = pickle.load(f)
 
-data_2000 = [[1610, 228308, 803.3, 537, 280117, 583.6, 389], [
-167, 22868, 729.1, 40, 21876, 479.3, 34], [
-192, 7442, 858.4, 71, 6503, 891.6, 66], [
-282, 22474, 703.7, 84, 18022, 512.8, 78], [
-185, 18725, 807.4, 70, 32917, 616.1, 36], [
-539, 125712, 873.4, 192, 174992, 546.4, 113], [
-245, 31087, 787.4, 81, 25780, 590.7, 62]]
+    print(data_5000_nonsort)
 
-data_1000 = [[1610, 228308, 493.6, 895, 280117, 363.9, 632], [
-167, 22868, 469.0, 76, 21876, 300.6, 55], [
-192, 7442, 542.2, 113, 6503, 553.3, 114], [
-282, 22474, 409.2, 141, 18022, 323.7, 110], [
-185, 18725, 500.4, 108, 32917, 404.1, 65], [
-539, 125712, 510.3, 330, 174992, 359.2, 186], [
-245, 31087, 547.1, 127, 25780, 340.0, 102]]
+data_5000 = [0,0,0,0,0,0,0]
+for entry in data_5000_nonsort:
+    if entry[0] == 'BC':
+        data_5000[0] = entry[1:]
+    elif entry[0] == 'CARIBOO':
+        data_5000[1] = entry[1:]
+    elif entry[0] == 'COAST':
+        data_5000[2] = entry[1:]
+    elif entry[0] == 'KAM':
+        data_5000[3] = entry[1:]
+    elif entry[0] == 'NW':
+        data_5000[4] = entry[1:]
+    elif entry[0] == 'PG':
+        data_5000[5] = entry[1:]
+    elif entry[0] == 'SE':
+        data_5000[6] = entry[1:]
 
-data_500 = [[1610, 228308, 291.8, 1222, 280117, 241.6, 886],
-[167, 22868, 289.8, 114, 21876, 219.4, 74],
-[192, 7442, 274.4, 160, 6503, 300.9, 161],
-[282, 22474, 284.1, 182, 18022, 216.5, 147],
-[185, 18725, 317.7, 145, 32917, 290.4, 102],
-[539, 125712, 289.0, 434, 174992, 237.4, 272],
-[245, 31087, 303.6, 187, 25780, 247.4, 131]]
+with open(f'pickles/2000_data.pkl','rb') as f:
+    data_2000_nonsort = pickle.load(f)
+
+data_2000 = [0,0,0,0,0,0,0]
+for entry in data_2000_nonsort:
+    if entry[0] == 'BC':
+        data_2000[0] = entry[1:]
+    elif entry[0] == 'CARIBOO':
+        data_2000[1] = entry[1:]
+    elif entry[0] == 'COAST':
+        data_2000[2] = entry[1:]
+    elif entry[0] == 'KAM':
+        data_2000[3] = entry[1:]
+    elif entry[0] == 'NW':
+        data_2000[4] = entry[1:]
+    elif entry[0] == 'PG':
+        data_2000[5] = entry[1:]
+    elif entry[0] == 'SE':
+        data_2000[6] = entry[1:]
+
+with open(f'pickles/1000_data.pkl','rb') as f:
+    data_1000_nonsort = pickle.load(f)
+
+data_1000 = [0,0,0,0,0,0,0]
+for entry in data_1000_nonsort:
+    if entry[0] == 'BC':
+        data_1000[0] = entry[1:]
+    elif entry[0] == 'CARIBOO':
+        data_1000[1] = entry[1:]
+    elif entry[0] == 'COAST':
+        data_1000[2] = entry[1:]
+    elif entry[0] == 'KAM':
+        data_1000[3] = entry[1:]
+    elif entry[0] == 'NW':
+        data_1000[4] = entry[1:]
+    elif entry[0] == 'PG':
+        data_1000[5] = entry[1:]
+    elif entry[0] == 'SE':
+        data_1000[6] = entry[1:]
+
+with open(f'pickles/500_data.pkl','rb') as f:
+    data_500_nonsort = pickle.load(f)
+
+data_500 = [0,0,0,0,0,0,0]
+for entry in data_500_nonsort:
+    if entry[0] == 'BC':
+        data_500[0] = entry[1:]
+    elif entry[0] == 'CARIBOO':
+        data_500[1] = entry[1:]
+    elif entry[0] == 'COAST':
+        data_500[2] = entry[1:]
+    elif entry[0] == 'KAM':
+        data_500[3] = entry[1:]
+    elif entry[0] == 'NW':
+        data_500[4] = entry[1:]
+    elif entry[0] == 'PG':
+        data_500[5] = entry[1:]
+    elif entry[0] == 'SE':
+        data_500[6] = entry[1:]
+
+
+# data_5000 = [[1610, 228299, 1366.8, 188, 279427, 978.7, 156], [
+# 167, 22868, 1098.9, 17, 21796, 875.9, 9], [
+# 192, 7433, 1422.6, 31, 6035, 1371.3, 31], [
+# 282, 22474, 1231.3, 25, 18005, 1001.1, 30], [
+# 185, 18725, 1463.8, 22, 32839, 907.4, 14], [
+# 539, 125712, 1429.1, 75, 174975, 885.1, 46], [
+# 245, 31087, 1456.1, 19, 25777, 1009.9, 26]]
+
+# data_2000 = [[1610, 228299, 803.3, 535, 279427, 583.6, 387], [
+# 167, 22868, 729.1, 40, 21796, 479.3, 34], [
+# 192, 7433, 858.4, 70, 6503, 891.6, 65], [
+# 282, 22474, 703.7, 84, 18005, 512.8, 78], [
+# 185, 18725, 807.4, 70, 32839, 616.1, 36], [
+# 539, 125712, 873.4, 191, 174975, 546.4, 112], [
+# 245, 31087, 787.4, 81, 25777, 590.7, 62]]
+
+# data_1000 = [[1610, 228299, 493.6, 893, 279427, 363.9, 630], [
+# 167, 22868, 469.0, 76, 21796, 300.6, 55], [
+# 192, 7433, 542.2, 112, 6503, 553.3, 113], [
+# 282, 22474, 409.2, 141, 18005, 323.7, 110], [
+# 185, 18725, 500.4, 108, 32839, 404.1, 65], [
+# 539, 125712, 510.3, 330, 174975, 359.2, 186], [
+# 245, 31087, 547.1, 127, 25777, 340.0, 102]]
+
+# data_500 = [[1610, 228299, 291.8, 1222, 279427, 241.6, 886],
+# [167, 22868, 289.8, 114, 21796, 219.4, 74],
+# [192, 7433, 274.4, 160, 6503, 300.9, 161],
+# [282, 22474, 284.1, 182, 18005, 216.5, 147],
+# [185, 18725, 317.7, 145, 32839, 290.4, 102],
+# [539, 125712, 289.0, 434, 174975, 237.4, 272],
+# [245, 31087, 303.6, 187, 25777, 247.4, 131]]
 
 
 # comments1 = ['All LCFs in BC in 2023 \\newline \\newline Green: Both sensors detected a strike within 5km from LCF, total: 1244 \\newline \\newline Orange: AEM detected strike but CLDN did not, total: 46 \\newline \\newline Red: CLDN detected stike but AEM did not, total: 208 \\newline \\newline  Black: Neither sensor detected a strike: total: 112']
