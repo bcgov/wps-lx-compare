@@ -9,15 +9,15 @@ import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.gridspec as gridspec
 
-max_radius = 5000 #define a max radius
+max_radius = 500 #define a max radius
 #loads data for all fire centers and combines them for all of BC
-data_se = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', max_radius)
-data_nw = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','NW', max_radius)
-data_car = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','CARIBOO', max_radius)
-data_coast = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','COAST', max_radius)
-data_kam = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','KAM', max_radius)
-data_pg = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','PG', max_radius)
-data_bc = comp('../data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','BC', max_radius)
+data_se = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','SE', max_radius)
+data_nw = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','NW', max_radius)
+data_car = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','CARIBOO', max_radius)
+data_coast = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','COAST', max_radius)
+data_kam = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','KAM', max_radius)
+data_pg = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','PG', max_radius)
+data_bc = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','BC', max_radius)
 data_both = data_se[0] + data_nw[0] + data_car[0] + data_coast[0] + data_kam[0] + data_pg[0]
 data_aem = data_se[1] + data_nw[1] + data_car[1] + data_coast[1] + data_kam[1] + data_pg[1]
 data_cldn = data_se[2] + data_nw[2] + data_car[2] + data_coast[2] + data_kam[2] + data_pg[2]
@@ -28,7 +28,7 @@ fig, ax = plt.subplots(figsize=(15, 15), subplot_kw={'projection': ccrs.PlateCar
 ax.set_extent([-136, -114, 48.3, 60.5], crs=ccrs.PlateCarree())
 
 #plots BC boundary
-bc_gdf = gpd.read_file('../shape_files/bc_boundary_terrestrial_multipart.shp')
+bc_gdf = gpd.read_file('../data/shape_files/bc_boundary_terrestrial_multipart.shp')
 bc_gdf = bc_gdf.to_crs(epsg=4326)
 bc_gdf.boundary.plot(ax=ax,edgecolor='black')
 

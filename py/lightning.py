@@ -60,11 +60,11 @@ def plotter(file,start_date,end_date):
     
     ax.set_extent([-136, -114, 48.3, 60.5], crs=ccrs.PlateCarree())
         
-    bc_gdf = gpd.read_file('~/wxps-lx-compare/shape_files/bc_boundary_terrestrial_multipart.shp')
+    bc_gdf = gpd.read_file('../data/shape_files/bc_boundary_terrestrial_multipart.shp')
     bc_gdf = bc_gdf.to_crs(epsg=4326)
     bc_gdf.boundary.plot(ax=ax,edgecolor='black')
     
-    shapefile_path = '~/wxps-lx-compare/shape_files/prot_current_fire_points.shp'
+    shapefile_path = '../data/shape_files/prot_current_fire_points.shp'
     fires_gdf = gpd.read_file(shapefile_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[(fires_gdf['FIRE_CAUSE'] == 'Lightning') &
@@ -169,19 +169,20 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
 
     aem = data_parser_aem(data1_file) #extracting data from csv files
     cldn = data_parser_cldn(data2_file)
-    fire_point_path = '../lx_data/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
+    fire_point_path = '../data/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
     fires_gdf = gpd.read_file(fire_point_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning'] #extracting lighting caused fires
-    foc_names = foc_lcf('../foc_lcf.csv')
+    foc_names = foc_lcf('../data/lx_data/foc_lcf.csv')
 
-    nw_zone_path = '../shape_files/nw_fc.shp'
-    coast_zone_path = '../shape_files/coast_fc.shp'
-    cari_zone_path = '../shape_files/cariboo_fc.shp'
-    kam_zone_path = '../shape_files/kam_fc.shp'
-    pg_zone_path = '../shape_files/pg_fc.shp'
-    se_zone_path = '../shape_files/se_fc.shp'
-    bc_zone_path = '../shape_files/bc.shp'
+    nw_zone_path = '../data/shape_files/nw_fc.shp'
+    coast_zone_path = '../data/shape_files/coast_fc.shp'
+    cari_zone_path = '../data/shape_files/cariboo_fc.shp'
+    kam_zone_path = '../data/shape_files/kam_fc.shp'
+    pg_zone_path = '../data/shape_files/pg_fc.shp'
+    se_zone_path = '../data/shape_files/se_fc.shp'
+    bc_zone_path = '../data/shape_files/bc_boundary_terrestrial_multipart.shp'
+    #'../shape_files/bc.shp'
 
     #choosing a fire centers shape file
     if zone == 'NW': 
@@ -211,7 +212,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     # fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in zone_fires_gdf.IGNITN_DT]
     fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
 
-
+    '''
     #updates filtered fires if FOC comparison is set to true
     if foc_on == True:
         foc_fires = []
@@ -223,6 +224,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         print(len(foc_fires))
         filtered_fires = foc_fires
         fire_dates = foc_fire_dates
+    '''
 
     #makes pickle directory if needed
     if not os.path.exists('pickles'):
@@ -366,9 +368,9 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         lcfs += 1
     #plotting histograms of distances of accepted stikes for all fire in given fire center
     if not os.path.exists(f'plots/{max_radius}data'):
-        os.mkdir(f'plots/{max_radius}data')
+        os.makedirs(f'plots/{max_radius}data')
     if not os.path.exists(f'plots/{max_radius}data/LCFS'):
-        os.mkdir(f'plots/{max_radius}data/LCFS')
+        os.makedirs(f'plots/{max_radius}data/LCFS')
 
     fig, ax1 = plt.subplots(figsize=(15,15))
     bins = np.linspace(0, max_radius, 23)
