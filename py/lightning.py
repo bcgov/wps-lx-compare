@@ -2,6 +2,8 @@
 Compares the AEM lighting detection sensors to the current CLDN network. The main function, comp, takes CSV's of the strike data for both sensors, a fire center code, and a max radius to determin if a strike caused the lightning caused fire (LCF). It also takes an optional argument to perform the comparison on origin and cause fires only.
 >>> comp('../lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', 1000)
 '''
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -14,6 +16,9 @@ import math
 import os
 import pickle as pickle
 
+#input dates for plotting
+STUDY_START = '2022-01-01' #'2023-08-15'
+STUDY_END = '2024-01-01' #'2023-10-25'
 
 def data_parser_aem(file):
     '''
@@ -133,7 +138,7 @@ def plotter(file,start_date,end_date):
 
     # Show the plot
     plt.savefig(f'strikes_LCFs_{start_date}_{end_date}.png')
-    plt.clf()
+    #plt.clf()
 
 def haversine(lat1, lon1, lat2, lon2):
     """
@@ -173,7 +178,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     fires_gdf = gpd.read_file(fire_point_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning'] #extracting lighting caused fires
-    foc_names = foc_lcf('../data/lx_data/foc_lcf.csv')
+    #foc_names = foc_lcf('../data/lx_data/foc_lcf.csv')
 
     nw_zone_path = '../data/shape_files/nw_fc.shp'
     coast_zone_path = '../data/shape_files/coast_fc.shp'
@@ -212,7 +217,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     # fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in zone_fires_gdf.IGNITN_DT]
     fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
 
-    '''
+    
     #updates filtered fires if FOC comparison is set to true
     if foc_on == True:
         foc_fires = []
@@ -224,7 +229,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         print(len(foc_fires))
         filtered_fires = foc_fires
         fire_dates = foc_fire_dates
-    '''
+    
 
     #makes pickle directory if needed
     if not os.path.exists('pickles'):
@@ -292,11 +297,11 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     aem_strikes = 0
     cldn_strikes = 0
     for strike in sorted_aem_dates:
-        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if datetime.strptime(STUDY_START, '%Y-%m-%d').date() < strike < datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             aem_strikes += 1
     
     for strike in sorted_cldn_dates:
-        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if datetime.strptime(STUDY_START, '%Y-%m-%d').date() < strike < datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             cldn_strikes += 1
 
     #calculating strike distance from fire start if strike distance < 5000 meters
@@ -313,7 +318,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     for fire in range(len(filtered_fires)): #searching through fire points in fire center perimeter
         end_date = fire_dates[fire] #fire start date, end date fore lightning search
         start_date = end_date - timedelta(weeks=3) #only taking strikes that took place within 3 weeks prior to ignition date
-        if start_date < datetime.strptime('2023-08-15', '%Y-%m-%d').date() or end_date > datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if start_date < datetime.strptime(STUDY_START, '%Y-%m-%d').date() or end_date > datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             continue
         lat = filtered_fires[fire][1]
         long = filtered_fires[fire][0]
@@ -433,3 +438,4 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             pickle.dump(my_list, f)
 
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
+

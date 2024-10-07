@@ -9,7 +9,7 @@ import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.gridspec as gridspec
 
-max_radius = 500 #define a max radius
+max_radius = 5000 #define a max radius
 #loads data for all fire centers and combines them for all of BC
 data_se = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','SE', max_radius)
 data_nw = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','NW', max_radius)
