@@ -17,6 +17,10 @@ import pickle as pickle
 import os
 import sys
 
+
+# Create subplots
+fig, axs = plt.subplots(1, 2, figsize = (15,6))
+
 def data_parser_aem(file):
     '''
     Parses the data from the AEM CSV
@@ -50,6 +54,45 @@ def data_parser_cldn(file):
     return df, gdf
 
 
+syncing =False #flag to prevent infinite recursion of zoom
+
+def link_zoom(event):
+    # Get the current limits of the first axis
+    global syncing
+    global fig
+    global axs
+    if syncing:
+         return
+    syncing = True
+    xlim = axs[0].get_xlim()
+    ylim = axs[0].get_ylim()
+    
+    # Set the limits for the second axis
+    axs[1].set_xlim(xlim)
+    axs[1].set_ylim(ylim)
+    
+    # Redraw the figure
+    fig.canvas.draw_idle()
+    syncing = False
+
+def link_zoom2(event):
+    # Get the current limits of the first axis
+    global syncing
+    global fig
+    global axs
+    if syncing:
+         return
+    syncing = True
+    xlim = axs[1].get_xlim()
+    ylim = axs[1].get_ylim()
+    
+    # Set the limits for the second axis
+    axs[0].set_xlim(xlim)
+    axs[0].set_ylim(ylim)
+    
+    # Redraw the figure
+    fig.canvas.draw_idle()
+    syncing = False
 
 def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     '''
@@ -70,26 +113,35 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
 
     #reshape and apply kde onto discrete data
     aem_positions = np.vstack([aem_df['longitude'], aem_df['latitude']])
-    aem_kde = gaussian_kde(aem_positions)
+    factor = 0.15
+    aem_kde = gaussian_kde(aem_positions, factor)
+    scott_factor = aem_kde.scotts_factor()
     aem_density = aem_kde(np.vstack([lon_mesh.ravel(), lat_mesh.ravel()])).reshape(lon_mesh.shape)
+
     cldn_positions = np.vstack([cldn_df['longitude'], cldn_df['latitude']])
-    cldn_kde = gaussian_kde(cldn_positions)
+    #import copy
+    #cldn_positions = copy.deepcopy(aem_positions)
+    #bw_cldn = gaussian_kde(cldn_positions, bw)
+    cldn_kde = gaussian_kde(cldn_positions, factor)
+    scott_factor_copy = cldn_kde.scotts_factor()
     cldn_density = cldn_kde(np.vstack([lon_mesh.ravel(), lat_mesh.ravel()])).reshape(lon_mesh.shape)
 
-    # Create subplots
-    fig, axs = plt.subplots(1, 2, figsize = (15,6))
+    print(f'Scott factor:{scott_factor}')
+    print(f'Scott factor copy:{scott_factor_copy}')
+
+    
     
     #Max color values for plotting currently set to 0.07 by inspection
     #Could update this to automatically use highest value on both plots if desired
 
     #plot aem data
-    contour_aem = axs[0].contourf(lon_mesh, lat_mesh, aem_density, levels=30, cmap='Blues', vmin = 0, vmax = 0.07)
-    axs[0].set_title('AEM Density')
+    contour_aem = axs[0].contourf(lon_mesh, lat_mesh, aem_density, levels=30, cmap='Blues', vmin = 0, vmax = 2.0)
+    axs[0].set_title(f'AEM Density ({len(aem_df)} strikes)')
     bc_gdf.boundary.plot(ax=axs[0], color='black', linewidth= 0.5)
 
     #plot cldn data
-    contour_cldn = axs[1].contourf(lon_mesh, lat_mesh, cldn_density, levels=30, cmap='Blues', vmin = 0, vmax = 0.07)
-    axs[1].set_title('CLDN Density')
+    contour_cldn = axs[1].contourf(lon_mesh, lat_mesh, cldn_density, levels=30, cmap='Blues', vmin = 0, vmax = 2.0)
+    axs[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)')
     bc_gdf.boundary.plot(ax=axs[1], color='black', linewidth = 0.5)
 
     #add a colorbar
@@ -104,6 +156,11 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     if not os.path.exists('plots/lx_density_plots/'):
         os.mkdir('plots/lx_density_plots')
     plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}.png')
+
+    axs[0].callbacks.connect('xlim_changed', link_zoom)
+    axs[0].callbacks.connect('ylim_changed', link_zoom)
+    axs[1].callbacks.connect('xlim_changed', link_zoom)
+    axs[1].callbacks.connect('ylim_changed', link_zoom2)
     plt.show()
 
 
@@ -124,6 +181,7 @@ if __name__ == "__main__":
     n_grids = int(sys.argv[1])
     start_date = sys.argv[2]
     end_date = sys.argv[3]
+    #bandwidth = float(sys.argv[4])
     bc_gdf = gpd.read_file(bc_boundary).to_crs('EPSG:4326')
 
     #pickle file generation 
@@ -136,6 +194,8 @@ if __name__ == "__main__":
         print('Filtering AEM data')
         filtered_aem_gdf = gpd.sjoin(aem_gdf, bc_gdf, how = 'inner', predicate = 'intersects')
         filtered_aem_df = filtered_aem_gdf.drop(columns = 'geometry')
+        #filter out intracloud strikes
+        filtered_aem_df = filtered_aem_df[filtered_aem_df.type != 1]
         filtered_aem_df.to_pickle('pickles/aem_in_range.pkl')
         print('Filtered')
 
@@ -157,8 +217,7 @@ if __name__ == "__main__":
         with open(f'pickles/cldn_in_range.pkl', 'rb') as f:
                 filtered_cldn_df = pickle.load(f)
 
-    #Filter out intracloud lightning
-    #This will be incorporated into pickle data asap
-    test_aem_df = filtered_aem_df[filtered_aem_df.type != 1]
+ 
+    
 
-    plot_density(test_aem_df, filtered_cldn_df, n_grids, start_date, end_date)
+    plot_density(filtered_aem_df, filtered_cldn_df, n_grids, start_date, end_date)
