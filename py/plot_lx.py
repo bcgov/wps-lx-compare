@@ -26,13 +26,13 @@ def data_parser_aem(file):
     Parses the data from the AEM CSV
     '''
     df = pd.read_csv(file)
-    df['time']= pd.to_datetime(df.iloc[:, 0])
-    df['type'] = df.iloc[:, 1]
+    df['time']= pd.to_datetime(df.iloc[:,1]) #pd.to_datetime(df.iloc[:, 0])
+    df['type'] = df.iloc[:,0] #df.iloc[:, 1]
     df['latitude'] = df.iloc[:, 2]
     df['longitude'] = df.iloc[:, 3]
     df['pc'] = df.iloc[:, 4]
     df['ic'] = df.iloc[:, 5]
-    df['station'] = df.iloc[:, 6]
+    #df['station'] = df.iloc[:, 6]
     # Convert the DataFrame to a GeoDataFrame
     geometry = [Point(xy) for xy in zip(df['longitude'],df['latitude'])]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')  
@@ -43,11 +43,11 @@ def data_parser_cldn(file):
     Parses the data for the CLDN CSV
     '''
     df = pd.read_csv(file)
-    df['time'] = pd.to_datetime(df.iloc[:, 7])
-    df['polarity'] = df.iloc[:, 4]
-    df['latitude'] = df.iloc[:, 2]
-    df['longitude'] = df.iloc[:, 3]
-    df['charge'] = df.iloc[:,6]
+    df['time'] = pd.to_datetime(df.iloc[:, 14].str.split('.', expand=True)[0], format='%y-%m-%d %H:%M:%S') #pd.to_datetime(df.iloc[:, 7])
+    df['polarity'] = df.iloc[:, 2] #df.iloc[:, 4]
+    df['latitude'] = df.iloc[:, 5] #df.iloc[:, 2]
+    df['longitude'] = df.iloc[:, 6] #df.iloc[:, 3]
+    df['charge'] = df.iloc[:,4] #df.iloc[:,6]
     geometry = [Point(xy) for xy in zip(df['longitude'],df['latitude'])]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')  
     
@@ -113,13 +113,15 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     fig1, axs1 = plt.subplots(1, 2, figsize = (15,6))
     #plot aem data
     contour_aem = axs1[0].contourf(lon_mesh, lat_mesh, aem_density, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
-    axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)\n CAR: {strikes_aem.iloc[0]}, COAST: {strikes_aem.iloc[1]}, KAM: {strikes_aem.iloc[2]}, NW: {strikes_aem.iloc[3]}, PG: {strikes_aem.iloc[4]}, SE: {strikes_aem.iloc[5]}')
+    #axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)\n CAR: {strikes_aem.iloc[0]}, COAST: {strikes_aem.iloc[1]}, KAM: {strikes_aem.iloc[2]}, NW: {strikes_aem.iloc[3]}, PG: {strikes_aem.iloc[4]}, SE: {strikes_aem.iloc[5]}')
+    axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)')
     plot_map(axs1[0])
     
 
     #plot cldn data
     contour_cldn = axs1[1].contourf(lon_mesh, lat_mesh, cldn_density, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
-    axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)\n CAR: {strikes_cldn.iloc[0]}, COAST: {strikes_cldn.iloc[1]}, KAM: {strikes_cldn.iloc[2]}, NW: {strikes_cldn.iloc[3]}, PG: {strikes_cldn.iloc[4]}, SE: {strikes_cldn.iloc[5]}')
+    #axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)\n CAR: {strikes_cldn.iloc[0]}, COAST: {strikes_cldn.iloc[1]}, KAM: {strikes_cldn.iloc[2]}, NW: {strikes_cldn.iloc[3]}, PG: {strikes_cldn.iloc[4]}, SE: {strikes_cldn.iloc[5]}')
+    axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)')
     plot_map(axs1[1])
 
     #add a colorbar
@@ -134,7 +136,7 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
             os.mkdir('plots')
     if not os.path.exists('plots/lx_density_plots/'):
         os.mkdir('plots/lx_density_plots')
-    plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}.png')
+    plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_comp.png')
 
     zoomsync = LinkZoom(fig1, axs1)
 
@@ -146,8 +148,9 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     if abs(np.min(density_dif)) > colorbar_max:
         colorbar_max = abs(np.min(density_dif))
 
+    levels = np.linspace(-colorbar_max, colorbar_max, 31)
     fig2, axs2 = plt.subplots(figsize = (6,6))
-    contour_dif = axs2.contourf(lon_mesh, lat_mesh, density_dif, levels=30, cmap='seismic', vmin = -1*colorbar_max, vmax = colorbar_max)
+    contour_dif = axs2.contourf(lon_mesh, lat_mesh, density_dif, levels=levels, cmap='seismic', vmin = -colorbar_max, vmax = colorbar_max)
     plot_map(axs2)
     axs2.set_title(f'Lightning strike density difference between {start_date} and {end_date}')
     cbar = fig2.colorbar(contour_dif, ax=axs2, orientation='horizontal', fraction=0.05, pad=0.1)
@@ -156,6 +159,13 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     cbar.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar.ax.transAxes)
     cbar.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar.ax.transAxes)
 
+    #produce strikes table
+    fig3, axs3 = plt.subplots(figsize = (4,4))
+    axs3.axis('tight')
+    axs3.axis('off')
+    all_strikes = pd.concat([strikes_aem, strikes_cldn], axis=1)
+    table = axs3.table(cellText=all_strikes.values, colLabels=['AEM', 'CLDN'], rowLabels=list(fire_centers.keys()), loc='center')
+    axs3.set_title(f'Lightning strike density between {start_date} and {end_date}')
     plt.show()
     
 
@@ -166,8 +176,8 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
 
 ###FILE PATHS
 
-aem_path = '../data/lx_data/EarthNetworks_BCWS_LX_2023.csv'
-cldn_path = '../data/lx_data/cldn.csv'
+aem_path = '../data/lx_data/BCwildfire_2024_April-Sept_pulse.csv' #'../data/lx_data/old_data/EarthNetworks_BCWS_LX_2023.csv'
+cldn_path = '../data/lx_data/WFPRD_Lightning_20240401-20240831.csv'  #'../data/lx_data/old_data/cldn.csv'
 bc_boundary = '../data/shape_files/bc_boundary_terrestrial_multipart.shp'
 cariboo = '../data/shape_files/cariboo_fc.shp'
 coast = '../data/shape_files/coast_fc.shp'
@@ -199,6 +209,7 @@ if __name__ == "__main__":
     
 
     #pickle file generation 
+
     if not os.path.exists('pickles'):
             os.mkdir('pickles')
 
@@ -261,14 +272,14 @@ if __name__ == "__main__":
         filtered_cldn_gdf = cldn_gdf[cldn_gdf['fire_center'].notna()]
         print(f"Filtered cldn_gdf size: {len(filtered_cldn_gdf)}")
         filtered_cldn_gdf.reset_index(drop=True, inplace=True)
-
+ 
         # Filtered CLDNDataFrame
         filtered_cldn_df = filtered_cldn_gdf.drop(columns='geometry')
  
         filtered_cldn_df.to_csv('Test2.csv')
         filtered_cldn_df.to_pickle('pickles/cldn_in_range.pkl')
         print('Filtered')
-
+ 
     else:
         with open(f'pickles/cldn_in_range.pkl', 'rb') as f:
                     filtered_cldn_df = pickle.load(f)
