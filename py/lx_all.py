@@ -1,5 +1,5 @@
 '''
-Plots accepted lightning data (within space time threshold of LCF) for all fire centers and BC. Also plots a point map of LCFs colored by which sensor detected it
+Plots accepted lightning data (within space time threshold of LCF) for all fire centers and BC. Also plots a point map of LCFs colored by which sensor 'detected' it
 '''
 
 from lightning import comp #compare two types of lighting data for one fire center
@@ -9,15 +9,18 @@ import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.gridspec as gridspec
 
-max_radius = 5000 #define a max radius
+max_radius = 100 #define a max radius
 #loads data for all fire centers and combines them for all of BC
-data_se = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','SE', max_radius)
-data_nw = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','NW', max_radius)
-data_car = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','CARIBOO', max_radius)
-data_coast = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','COAST', max_radius)
-data_kam = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','KAM', max_radius)
-data_pg = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','PG', max_radius)
-data_bc = comp('../data/lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/lx_data/cldn.csv','BC', max_radius)
+cldn_path = '../data/lx_data/WFPRD_Lightning_20240401-20240831.csv' #'../data/lx_data/cldn.csv'
+aem_path = '../data/lx_data/BCwildfire_2024_April-Sept_pulse.csv' #'../data/lx_data/EarthNetworks_BCWS_LX_2023.csv'
+
+data_se = comp(aem_path, cldn_path,'SE', max_radius)
+data_nw = comp(aem_path, cldn_path,'NW', max_radius)
+data_car = comp(aem_path, cldn_path,'CARIBOO', max_radius)
+data_coast = comp(aem_path, cldn_path,'COAST', max_radius)
+data_kam = comp(aem_path, cldn_path,'KAM', max_radius)
+data_pg = comp(aem_path, cldn_path,'PG', max_radius)
+data_bc = comp(aem_path, cldn_path,'BC', max_radius)
 data_both = data_se[0] + data_nw[0] + data_car[0] + data_coast[0] + data_kam[0] + data_pg[0]
 data_aem = data_se[1] + data_nw[1] + data_car[1] + data_coast[1] + data_kam[1] + data_pg[1]
 data_cldn = data_se[2] + data_nw[2] + data_car[2] + data_coast[2] + data_kam[2] + data_pg[2]
@@ -55,13 +58,13 @@ for long, lat in data_miss:
     ax.plot(long,lat, color='black',marker='o',markersize=6,transform=ccrs.PlateCarree())
 
 #How to plot a single legend entry for each detection type instead of one legend entry for each LCF
-ax.scatter(np.nan,np.nan, marker='o', color='green', label=f'Both sensors detected: {both}')
-ax.scatter(np.nan,np.nan, marker='o', color='orange', label=f'Just AEM detected: {aem}')
-ax.scatter(np.nan,np.nan, marker='o', color='red', label=f'Just CLDN detected: {cldn}')
+ax.scatter(np.nan,np.nan, marker='o', color='green', label=f'Both sensors matched: {both}')
+ax.scatter(np.nan,np.nan, marker='o', color='orange', label=f'Just AEM matched: {aem}')
+ax.scatter(np.nan,np.nan, marker='o', color='red', label=f'Just CLDN matched: {cldn}')
 ax.scatter(np.nan,np.nan, marker='o', color='black', label=f'Both sensors missed: {miss}')
 plt.title('LCFs ignition points colored by sensor detection combinations',fontsize=14)
 plt.legend(fontsize=14)
-plt.tight_layout()
+#plt.tight_layout()
 plt.savefig(f'plots/{max_radius}data/LCFs/{max_radius}m-strike-detection.png')
 plt.clf()
 
@@ -138,5 +141,5 @@ ax7.set_title('BC')
 ax7.set_ylabel('# of fires')
 ax7.bar(names,bc,color=colors)
 
-plt.tight_layout()
+#plt.tight_layout()
 plt.savefig(f'plots/{max_radius}data/LCFs/{max_radius}m-hist.png')
