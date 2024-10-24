@@ -1,7 +1,7 @@
 '''
 Produces density plots to compare lightning strike detection from AEM and CLDN sources
 Example call: 
-python3 plot_lx.py 100 '2023-08-02' '2023-08-03'
+python3 plot_lx.py 100 '2024-06-02' '2024-08-03'
 
 '''
 import numpy as np
@@ -18,7 +18,7 @@ import os
 import sys
 from fig_tools import LinkZoom
 
-# Create subplots
+
 
 
 def data_parser_aem(file):
@@ -92,6 +92,8 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     aem_kde = gaussian_kde(aem_positions, factor)
     scott_factor = aem_kde.scotts_factor()
     aem_density = aem_kde(np.vstack([lon_mesh.ravel(), lat_mesh.ravel()])).reshape(lon_mesh.shape)
+    aem_density_prob = aem_density/np.sum(aem_density)*np.prod(np.diff(lon_mesh[0,:2]))
+    aem_density_strikes = aem_density*len(aem_df)/np.sum(aem_density)
 
     cldn_positions = np.vstack([cldn_df['longitude'], cldn_df['latitude']])
     #import copy
@@ -100,32 +102,35 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     cldn_kde = gaussian_kde(cldn_positions, factor)
     scott_factor_copy = cldn_kde.scotts_factor()
     cldn_density = cldn_kde(np.vstack([lon_mesh.ravel(), lat_mesh.ravel()])).reshape(lon_mesh.shape)
+    cldn_density_prob = cldn_density/np.sum(cldn_density)*np.prod(np.diff(lon_mesh[0,:2]))
+    cldn_density_strikes = cldn_density*len(cldn_df)/np.sum(cldn_density)
 
     #print(f'Scott factor:{scott_factor}')
     #print(f'Scott factor copy:{scott_factor_copy}')
 
     #calculate maximum density for plotting
-    max_density = np.max(aem_density)
-    if np.max(cldn_density) > max_density:
-        max_density = np.max(cldn_density)
+    max_density = np.max(aem_density_prob)
+    if np.max(cldn_density_prob) > max_density:
+        max_density = np.max(cldn_density_prob)
 
 
     fig1, axs1 = plt.subplots(1, 2, figsize = (15,6))
     #plot aem data
-    contour_aem = axs1[0].contourf(lon_mesh, lat_mesh, aem_density, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
+    contour_aem = axs1[0].contourf(lon_mesh, lat_mesh, aem_density_prob, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
     #axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)\n CAR: {strikes_aem.iloc[0]}, COAST: {strikes_aem.iloc[1]}, KAM: {strikes_aem.iloc[2]}, NW: {strikes_aem.iloc[3]}, PG: {strikes_aem.iloc[4]}, SE: {strikes_aem.iloc[5]}')
     axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)')
     plot_map(axs1[0])
     
 
     #plot cldn data
-    contour_cldn = axs1[1].contourf(lon_mesh, lat_mesh, cldn_density, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
+    contour_cldn = axs1[1].contourf(lon_mesh, lat_mesh, cldn_density_prob, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
     #axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)\n CAR: {strikes_cldn.iloc[0]}, COAST: {strikes_cldn.iloc[1]}, KAM: {strikes_cldn.iloc[2]}, NW: {strikes_cldn.iloc[3]}, PG: {strikes_cldn.iloc[4]}, SE: {strikes_cldn.iloc[5]}')
     axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)')
     plot_map(axs1[1])
 
     #add a colorbar
     cbar = fig1.colorbar(contour_aem, ax=axs1, orientation='horizontal', fraction=0.05, pad=0.1)
+    cbar.ax.tick_params(labelrotation=45)
     cbar.set_label('Density')
 
     fig1.suptitle(f'Lightning strike density between {start_date} and {end_date}')
@@ -137,36 +142,77 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     if not os.path.exists('plots/lx_density_plots/'):
         os.mkdir('plots/lx_density_plots')
     plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_comp.png')
-
+    #synchronize subplot zoom
     zoomsync = LinkZoom(fig1, axs1)
 
 
     #Generate flux plot
-    density_dif = np.subtract(aem_density, cldn_density)
+    #difference in probabilities
+    density_dif_prob = np.subtract(aem_density_prob, cldn_density_prob)
     #colorbar limits calculation
-    colorbar_max = np.max(density_dif)
-    if abs(np.min(density_dif)) > colorbar_max:
-        colorbar_max = abs(np.min(density_dif))
+    colorbar_max_prob = np.max(density_dif_prob)
+    if abs(np.min(density_dif_prob)) > colorbar_max_prob:
+        colorbar_max_prob = abs(np.min(density_dif_prob))
+    levels_prob = np.linspace(-colorbar_max_prob, colorbar_max_prob, 31)
+    #difference in strikes
+    density_dif_strikes = np.subtract(aem_density_strikes, cldn_density_strikes)
+    #colorbar limits calculation
+    colorbar_max_strikes = np.max(density_dif_strikes)
+    if abs(np.min(density_dif_strikes)) > colorbar_max_strikes:
+        colorbar_max_strikes = abs(np.min(density_dif_strikes))
+    levels_strikes = np.linspace(-colorbar_max_strikes, colorbar_max_strikes, 31)
 
-    levels = np.linspace(-colorbar_max, colorbar_max, 31)
-    fig2, axs2 = plt.subplots(figsize = (6,6))
-    contour_dif = axs2.contourf(lon_mesh, lat_mesh, density_dif, levels=levels, cmap='seismic', vmin = -colorbar_max, vmax = colorbar_max)
-    plot_map(axs2)
-    axs2.set_title(f'Lightning strike density difference between {start_date} and {end_date}')
-    cbar = fig2.colorbar(contour_dif, ax=axs2, orientation='horizontal', fraction=0.05, pad=0.1)
-    cbar.set_label('Density')
+    
 
-    cbar.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar.ax.transAxes)
-    cbar.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar.ax.transAxes)
+    #create figure for plotting
+    fig2, axs2 = plt.subplots(1,2, figsize = (15,6))
 
-    #produce strikes table
-    fig3, axs3 = plt.subplots(figsize = (4,4))
+    #Plot differences
+    contour_dif_prob = axs2[0].contourf(lon_mesh, lat_mesh, density_dif_prob, levels=levels_prob, cmap='seismic', vmin = -colorbar_max_prob, vmax = colorbar_max_prob)
+    plot_map(axs2[0])
+    axs2[0].set_title(f'Difference in probability density')
+
+    cbar_prob = fig2.colorbar(contour_dif_prob, ax=axs2[0], orientation='horizontal', fraction=0.05, pad=0.1)
+    cbar_prob.set_label('Density')
+
+    cbar_prob.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
+    cbar_prob.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
+    cbar_prob.ax.tick_params(labelrotation = 45)
+
+
+    contour_dif_strikes = axs2[1].contourf(lon_mesh, lat_mesh, density_dif_strikes, levels=levels_strikes, cmap='seismic', vmin = -colorbar_max_strikes, vmax = colorbar_max_strikes)
+    plot_map(axs2[1])
+    axs2[1].set_title(f'Difference in strikes')
+
+    cbar_strikes = fig2.colorbar(contour_dif_strikes, ax=axs2[1], orientation='horizontal', fraction=0.05, pad=0.1)
+    cbar_strikes.set_label('Density')
+
+    cbar_strikes.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
+    cbar_strikes.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
+    cbar_strikes.ax.tick_params(labelrotation=45)
+    fig2.suptitle(f'Lightning strike density difference between {start_date} and {end_date}')
+    plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_dif.png')
+ 
+    #Produce table
+    absolute_difference = abs(strikes_aem - strikes_cldn)
+    average_values = (strikes_aem + strikes_cldn) / 2
+
+    # Calculate the percent difference
+    percent_difference = round((absolute_difference / average_values).fillna(0) * 100, 3)
+
+    # Add the percent difference to the DataFrame
+    all_strikes = pd.concat([strikes_aem, strikes_cldn, percent_difference], axis=1)
+    all_strikes.columns = ['AEM', 'CLDN', 'Percent Difference']
+
+    # Create the table
+    fig3, axs3 = plt.subplots(figsize=(10, 4))
     axs3.axis('tight')
     axs3.axis('off')
-    all_strikes = pd.concat([strikes_aem, strikes_cldn], axis=1)
-    table = axs3.table(cellText=all_strikes.values, colLabels=['AEM', 'CLDN'], rowLabels=list(fire_centers.keys()), loc='center')
+    table = axs3.table(cellText=all_strikes.values, colLabels=all_strikes.columns, rowLabels=list(fire_centers.keys()), loc='center')
     axs3.set_title(f'Lightning strike density between {start_date} and {end_date}')
+    plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_table.png')
     plt.show()
+
     
 
 
