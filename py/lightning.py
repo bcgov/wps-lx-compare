@@ -17,34 +17,34 @@ import os
 import pickle as pickle
 
 #input dates for plotting
-STUDY_START = '2022-01-01' #'2023-08-15'
-STUDY_END = '2024-01-01' #'2023-10-25'
+STUDY_START = '2024-01-01' #'2023-08-15'
+STUDY_END = '2025-01-01' #'2023-10-25'
 
 def data_parser_aem(file):
     '''
     Parses the data from the AEM CSV
     '''
     df = pd.read_csv(file)
-    time_list = df.iloc[:, 0].tolist()
-    type_list = df.iloc[:, 1].tolist()
+    time_list = df.iloc[:, 1].tolist()  #df.iloc[:, 0].tolist()
+    type_list = df.iloc[:, 0].tolist() #df.iloc[:, 1].tolist()
     lat_list = df.iloc[:, 2].tolist()
     long_list = df.iloc[:, 3].tolist()
     pc_list = df.iloc[:, 4].tolist()
     ic_list = df.iloc[:, 5].tolist()
-    station_list = df.iloc[:, 6].tolist()
+    #station_list = df.iloc[:, 6].tolist()
     
-    return [time_list,type_list,lat_list,long_list,pc_list,ic_list,station_list]
+    return [time_list,type_list,lat_list,long_list,pc_list,ic_list]
 
 def data_parser_cldn(file):
     '''
     Parses the data for the CLDN CSV
     '''
     df = pd.read_csv(file)
-    time_list = df.iloc[:, 7].tolist()
-    polarity_list = df.iloc[:, 4].tolist()
-    lat_list = df.iloc[:, 2].tolist()
-    long_list = df.iloc[:, 3].tolist()
-    charge_list = df.iloc[:,6].tolist()
+    time_list = df.iloc[:, 14].tolist() #df.iloc[:, 7].tolist()
+    polarity_list = df.iloc[:, 2].tolist() #df.iloc[:, 4].tolist()
+    lat_list = df.iloc[:, 5].tolist() #df.iloc[:, 2].tolist()
+    long_list = df.iloc[:, 6].tolist() #df.iloc[:, 3].tolist()
+    charge_list = df.iloc[:, 4].tolist() #df.iloc[:,6].tolist()
     
     return [time_list,charge_list,lat_list,long_list,polarity_list]
 
@@ -275,7 +275,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         cldn_filtered = gpd.sjoin(cldn_gdf, zone_gdf,how='inner',predicate='intersects')
         cldn_filtered_points = [(point.x, point.y) for point in cldn_filtered.geometry]
         # cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S") for date in cldn_filtered.date]
-        cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S").date() for date in cldn_filtered.date]
+        cldn_filtered_dates = [datetime.strptime(date.split('.')[0], '%y-%m-%d %H:%M:%S').date() for date in cldn_filtered.date]
+        
         data = [cldn_filtered_points, cldn_filtered_dates]
         with open(f'pickles/cldn_{zone}.pkl','wb') as f:
             pickle.dump(data, f)
@@ -416,7 +417,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     ax1.legend(fontsize=14, loc='upper right')
     ax2.legend(fontsize=14, loc='upper left')
     plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {lcfs}',fontsize=18)
-    plt.tight_layout()
+    #plt.500_layout()
     plt.savefig(f'plots/{max_radius}data/{max_radius}m-{zone}-strike-data.png')
     plt.clf()
 
