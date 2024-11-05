@@ -2,6 +2,8 @@
 Compares the AEM lighting detection sensors to the current CLDN network. The main function, comp, takes CSV's of the strike data for both sensors, a fire center code, and a max radius to determin if a strike caused the lightning caused fire (LCF). It also takes an optional argument to perform the comparison on origin and cause fires only.
 >>> comp('../lx_data/EarthNetworks_BCWS_LX_2023.csv','../data/cldn.csv','SE', 1000)
 '''
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -14,32 +16,35 @@ import math
 import os
 import pickle as pickle
 
+#input dates for plotting
+STUDY_START = '2024-01-01' #'2023-08-15'
+STUDY_END = '2025-01-01' #'2023-10-25'
 
 def data_parser_aem(file):
     '''
     Parses the data from the AEM CSV
     '''
     df = pd.read_csv(file)
-    time_list = df.iloc[:, 0].tolist()
-    type_list = df.iloc[:, 1].tolist()
+    time_list = df.iloc[:, 1].tolist()  #df.iloc[:, 0].tolist()
+    type_list = df.iloc[:, 0].tolist() #df.iloc[:, 1].tolist()
     lat_list = df.iloc[:, 2].tolist()
     long_list = df.iloc[:, 3].tolist()
     pc_list = df.iloc[:, 4].tolist()
     ic_list = df.iloc[:, 5].tolist()
-    station_list = df.iloc[:, 6].tolist()
+    #station_list = df.iloc[:, 6].tolist()
     
-    return [time_list,type_list,lat_list,long_list,pc_list,ic_list,station_list]
+    return [time_list,type_list,lat_list,long_list,pc_list,ic_list]
 
 def data_parser_cldn(file):
     '''
     Parses the data for the CLDN CSV
     '''
     df = pd.read_csv(file)
-    time_list = df.iloc[:, 7].tolist()
-    polarity_list = df.iloc[:, 4].tolist()
-    lat_list = df.iloc[:, 2].tolist()
-    long_list = df.iloc[:, 3].tolist()
-    charge_list = df.iloc[:,6].tolist()
+    time_list = df.iloc[:, 14].tolist() #df.iloc[:, 7].tolist()
+    polarity_list = df.iloc[:, 2].tolist() #df.iloc[:, 4].tolist()
+    lat_list = df.iloc[:, 5].tolist() #df.iloc[:, 2].tolist()
+    long_list = df.iloc[:, 6].tolist() #df.iloc[:, 3].tolist()
+    charge_list = df.iloc[:, 4].tolist() #df.iloc[:,6].tolist()
     
     return [time_list,charge_list,lat_list,long_list,polarity_list]
 
@@ -60,11 +65,11 @@ def plotter(file,start_date,end_date):
     
     ax.set_extent([-136, -114, 48.3, 60.5], crs=ccrs.PlateCarree())
         
-    bc_gdf = gpd.read_file('~/wxps-lx-compare/shape_files/bc_boundary_terrestrial_multipart.shp')
+    bc_gdf = gpd.read_file('../data/shape_files/bc_boundary_terrestrial_multipart.shp')
     bc_gdf = bc_gdf.to_crs(epsg=4326)
     bc_gdf.boundary.plot(ax=ax,edgecolor='black')
     
-    shapefile_path = '~/wxps-lx-compare/shape_files/prot_current_fire_points.shp'
+    shapefile_path = '../data/shape_files/prot_current_fire_points.shp'
     fires_gdf = gpd.read_file(shapefile_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[(fires_gdf['FIRE_CAUSE'] == 'Lightning') &
@@ -133,7 +138,7 @@ def plotter(file,start_date,end_date):
 
     # Show the plot
     plt.savefig(f'strikes_LCFs_{start_date}_{end_date}.png')
-    plt.clf()
+    #plt.clf()
 
 def haversine(lat1, lon1, lat2, lon2):
     """
@@ -169,19 +174,20 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
 
     aem = data_parser_aem(data1_file) #extracting data from csv files
     cldn = data_parser_cldn(data2_file)
-    fire_point_path = '../lx_data/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
+    fire_point_path = '../data/shape_files/prot_current_fire_points.shp' #extracting LCFs from shape file
     fires_gdf = gpd.read_file(fire_point_path)
     fires_gdf = fires_gdf.to_crs(epsg=4326)
     filtered_fires_gdf = fires_gdf[fires_gdf['FIRE_CAUSE'] == 'Lightning'] #extracting lighting caused fires
-    foc_names = foc_lcf('../foc_lcf.csv')
+    #foc_names = foc_lcf('../data/lx_data/foc_lcf.csv')
 
-    nw_zone_path = '../shape_files/nw_fc.shp'
-    coast_zone_path = '../shape_files/coast_fc.shp'
-    cari_zone_path = '../shape_files/cariboo_fc.shp'
-    kam_zone_path = '../shape_files/kam_fc.shp'
-    pg_zone_path = '../shape_files/pg_fc.shp'
-    se_zone_path = '../shape_files/se_fc.shp'
-    bc_zone_path = '../shape_files/bc.shp'
+    nw_zone_path = '../data/shape_files/nw_fc.shp'
+    coast_zone_path = '../data/shape_files/coast_fc.shp'
+    cari_zone_path = '../data/shape_files/cariboo_fc.shp'
+    kam_zone_path = '../data/shape_files/kam_fc.shp'
+    pg_zone_path = '../data/shape_files/pg_fc.shp'
+    se_zone_path = '../data/shape_files/se_fc.shp'
+    bc_zone_path = '../data/shape_files/bc_boundary_terrestrial_multipart.shp'
+    #'../shape_files/bc.shp'
 
     #choosing a fire centers shape file
     if zone == 'NW': 
@@ -211,7 +217,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     # fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in zone_fires_gdf.IGNITN_DT]
     fire_dates = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S').date() for date in zone_fires_gdf.IGNITN_DT] #writing ignition time to a list
 
-
+    
     #updates filtered fires if FOC comparison is set to true
     if foc_on == True:
         foc_fires = []
@@ -223,6 +229,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         print(len(foc_fires))
         filtered_fires = foc_fires
         fire_dates = foc_fire_dates
+    
 
     #makes pickle directory if needed
     if not os.path.exists('pickles'):
@@ -268,7 +275,8 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         cldn_filtered = gpd.sjoin(cldn_gdf, zone_gdf,how='inner',predicate='intersects')
         cldn_filtered_points = [(point.x, point.y) for point in cldn_filtered.geometry]
         # cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S") for date in cldn_filtered.date]
-        cldn_filtered_dates = [datetime.strptime(date.split('+')[0], "%Y/%m/%d %H:%M:%S").date() for date in cldn_filtered.date]
+        cldn_filtered_dates = [datetime.strptime(date.split('.')[0], '%y-%m-%d %H:%M:%S').date() for date in cldn_filtered.date]
+        
         data = [cldn_filtered_points, cldn_filtered_dates]
         with open(f'pickles/cldn_{zone}.pkl','wb') as f:
             pickle.dump(data, f)
@@ -290,11 +298,11 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     aem_strikes = 0
     cldn_strikes = 0
     for strike in sorted_aem_dates:
-        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if datetime.strptime(STUDY_START, '%Y-%m-%d').date() < strike < datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             aem_strikes += 1
     
     for strike in sorted_cldn_dates:
-        if datetime.strptime('2023-08-15', '%Y-%m-%d').date() < strike < datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if datetime.strptime(STUDY_START, '%Y-%m-%d').date() < strike < datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             cldn_strikes += 1
 
     #calculating strike distance from fire start if strike distance < 5000 meters
@@ -311,7 +319,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     for fire in range(len(filtered_fires)): #searching through fire points in fire center perimeter
         end_date = fire_dates[fire] #fire start date, end date fore lightning search
         start_date = end_date - timedelta(weeks=3) #only taking strikes that took place within 3 weeks prior to ignition date
-        if start_date < datetime.strptime('2023-08-15', '%Y-%m-%d').date() or end_date > datetime.strptime('2023-10-25', '%Y-%m-%d').date():
+        if start_date < datetime.strptime(STUDY_START, '%Y-%m-%d').date() or end_date > datetime.strptime(STUDY_END, '%Y-%m-%d').date():
             continue
         lat = filtered_fires[fire][1]
         long = filtered_fires[fire][0]
@@ -366,9 +374,9 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
         lcfs += 1
     #plotting histograms of distances of accepted stikes for all fire in given fire center
     if not os.path.exists(f'plots/{max_radius}data'):
-        os.mkdir(f'plots/{max_radius}data')
+        os.makedirs(f'plots/{max_radius}data')
     if not os.path.exists(f'plots/{max_radius}data/LCFS'):
-        os.mkdir(f'plots/{max_radius}data/LCFS')
+        os.makedirs(f'plots/{max_radius}data/LCFS')
 
     fig, ax1 = plt.subplots(figsize=(15,15))
     bins = np.linspace(0, max_radius, 23)
@@ -409,7 +417,7 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
     ax1.legend(fontsize=14, loc='upper right')
     ax2.legend(fontsize=14, loc='upper left')
     plt.title(f'Strike counts within {max_radius/1000}km and 3 weeks of LCF ignition, AEM vs CLDN, fire center: {zone}, # of LCFs: {lcfs}',fontsize=18)
-    plt.tight_layout()
+    #plt.500_layout()
     plt.savefig(f'plots/{max_radius}data/{max_radius}m-{zone}-strike-data.png')
     plt.clf()
 
@@ -431,3 +439,4 @@ def comp(data1_file,data2_file,zone, max_radius, foc_on=False):
             pickle.dump(my_list, f)
 
     return [both_det, aem_det, cldn_det, both_miss, aem_dist, cldn_dist, aem_miss, cldn_miss]
+
