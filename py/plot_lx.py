@@ -2,7 +2,7 @@
 Produces density plots to compare lightning strike detection from AEM and CLDN sources
 Example call: 
 python3 plot_lx.py 100 '2024-06-02' '2024-08-03'
-
+python3 plot_lx.py 100 '2023-06-02' '2023-08-03' --use_old_data
 '''
 import numpy as np
 import matplotlib
@@ -26,13 +26,24 @@ def data_parser_aem(file):
     Parses the data from the AEM CSV
     '''
     df = pd.read_csv(file)
-    df['time']= pd.to_datetime(df.iloc[:,1]) #pd.to_datetime(df.iloc[:, 0])
-    df['type'] = df.iloc[:,0] #df.iloc[:, 1]
-    df['latitude'] = df.iloc[:, 2]
-    df['longitude'] = df.iloc[:, 3]
-    df['pc'] = df.iloc[:, 4]
-    df['ic'] = df.iloc[:, 5]
-    #df['station'] = df.iloc[:, 6]
+    if use_new_data:
+        df['time']= pd.to_datetime(df.iloc[:,1]) 
+        df['type'] = df.iloc[:,0] 
+        df['latitude'] = df.iloc[:, 2]
+        df['longitude'] = df.iloc[:, 3]
+        df['pc'] = df.iloc[:, 4]
+        df['ic'] = df.iloc[:, 5]
+        
+    else:
+
+        df['time']=  pd.to_datetime(df.iloc[:, 0])
+        df['type'] = df.iloc[:, 1]
+        df['latitude'] = df.iloc[:, 2]
+        df['longitude'] = df.iloc[:, 3]
+        df['pc'] = df.iloc[:, 4]
+        df['ic'] = df.iloc[:, 5]
+        df['station'] = df.iloc[:, 6]
+
     # Convert the DataFrame to a GeoDataFrame
     geometry = [Point(xy) for xy in zip(df['longitude'],df['latitude'])]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')  
@@ -43,11 +54,18 @@ def data_parser_cldn(file):
     Parses the data for the CLDN CSV
     '''
     df = pd.read_csv(file)
-    df['time'] = pd.to_datetime(df.iloc[:, 14].str.split('.', expand=True)[0], format='%y-%m-%d %H:%M:%S') #pd.to_datetime(df.iloc[:, 7])
-    df['polarity'] = df.iloc[:, 2] #df.iloc[:, 4]
-    df['latitude'] = df.iloc[:, 5] #df.iloc[:, 2]
-    df['longitude'] = df.iloc[:, 6] #df.iloc[:, 3]
-    df['charge'] = df.iloc[:,4] #df.iloc[:,6]
+    if use_new_data:
+        df['time'] = pd.to_datetime(df.iloc[:, 14].str.split('.', expand=True)[0], format='%y-%m-%d %H:%M:%S') #pd.to_datetime(df.iloc[:, 7])
+        df['polarity'] = df.iloc[:, 2] #df.iloc[:, 4]
+        df['latitude'] = df.iloc[:, 5] #df.iloc[:, 2]
+        df['longitude'] = df.iloc[:, 6] #df.iloc[:, 3]
+        df['charge'] = df.iloc[:,4] #df.iloc[:,6]
+    else:
+        df['time'] = pd.to_datetime(df.iloc[:, 7])
+        df['polarity'] = df.iloc[:, 4]
+        df['latitude'] = df.iloc[:, 2]
+        df['longitude'] = df.iloc[:, 3]
+        df['charge'] = df.iloc[:,6]
     geometry = [Point(xy) for xy in zip(df['longitude'],df['latitude'])]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')  
     
@@ -219,28 +237,45 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
 
 
 
-
-###FILE PATHS
-
-aem_path = '../data/lx_data/BCwildfire_2024_April-Sept_pulse.csv' #'../data/lx_data/old_data/EarthNetworks_BCWS_LX_2023.csv'
-cldn_path = '../data/lx_data/WFPRD_Lightning_20240401-20240831.csv'  #'../data/lx_data/old_data/cldn.csv'
-bc_boundary = '../data/shape_files/bc_boundary_terrestrial_multipart.shp'
-cariboo = '../data/shape_files/cariboo_fc.shp'
-coast = '../data/shape_files/coast_fc.shp'
-kamloops = '../data/shape_files/kam_fc.shp'
-northwest = '../data/shape_files/nw_fc.shp'
-princegeorge = '../data/shape_files/pg_fc.shp'
-southeast = '../data/shape_files/se_fc.shp'
-
-
-
-
-
 if __name__ == "__main__":
-    n_grids = int(sys.argv[1])
-    start_date = sys.argv[2]
-    end_date = sys.argv[3]
-    #bandwidth = float(sys.argv[4])
+    # Check if --use_old_data flag is in the command line arguments
+    use_old_data = "--use_old_data" in sys.argv
+    use_new_data = not use_old_data
+
+    # Filter out unwanted arguments 
+    args_2 = [arg for arg in sys.argv if arg != '..']
+    
+    # Check for missing inputs
+    if len(args_2) < 4:
+        print("Usage: script.py <n_grids> <start_date> <end_date> [--use_old_data]")
+        sys.exit(1)
+
+    # Parse the arguments
+    n_grids = int(args_2[1])
+    start_date = args_2[2]
+    end_date = args_2[3]
+    
+
+
+    #LIGHTNING FILE PATHS
+    aem_path = '../data/lx_data/BCwildfire_2024_April-Sept_pulse.csv' 
+    cldn_path = '../data/lx_data/WFPRD_Lightning_20240401-20240831.csv'  
+    if use_old_data:
+        aem_path = '../data/lx_data/old_data/EarthNetworks_BCWS_LX_2023.csv'
+        cldn_path = '../data/lx_data/old_data/cldn.csv'
+
+
+    #SHAPEFILE PATHS
+    bc_boundary = '../data/shape_files/bc_boundary_terrestrial_multipart.shp'
+    cariboo = '../data/shape_files/cariboo_fc.shp'
+    coast = '../data/shape_files/coast_fc.shp'
+    kamloops = '../data/shape_files/kam_fc.shp'
+    northwest = '../data/shape_files/nw_fc.shp'
+    princegeorge = '../data/shape_files/pg_fc.shp'
+    southeast = '../data/shape_files/se_fc.shp'
+
+    
+
     bc_gdf = gpd.read_file(bc_boundary).to_crs('EPSG:4326')
     car_gdf = gpd.read_file(cariboo).to_crs('EPSG:4326')
     coast_gdf = gpd.read_file(coast).to_crs('EPSG:4326')
