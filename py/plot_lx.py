@@ -136,14 +136,14 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     #plot aem data
     contour_aem = axs1[0].contourf(lon_mesh, lat_mesh, aem_density_prob, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
     #axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)\n CAR: {strikes_aem.iloc[0]}, COAST: {strikes_aem.iloc[1]}, KAM: {strikes_aem.iloc[2]}, NW: {strikes_aem.iloc[3]}, PG: {strikes_aem.iloc[4]}, SE: {strikes_aem.iloc[5]}')
-    axs1[0].set_title(f'AEM Density ({len(aem_df)} strikes)')
+    axs1[0].set_title(f'AEM Density ({len(aem_df)} strokes)')
     plot_map(axs1[0])
     
 
     #plot cldn data
     contour_cldn = axs1[1].contourf(lon_mesh, lat_mesh, cldn_density_prob, levels=30, cmap='Blues', vmin = 0, vmax = max_density)
     #axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)\n CAR: {strikes_cldn.iloc[0]}, COAST: {strikes_cldn.iloc[1]}, KAM: {strikes_cldn.iloc[2]}, NW: {strikes_cldn.iloc[3]}, PG: {strikes_cldn.iloc[4]}, SE: {strikes_cldn.iloc[5]}')
-    axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strikes)')
+    axs1[1].set_title(f'CLDN Density ({len(cldn_df)} strokes)')
     plot_map(axs1[1])
 
     #add a colorbar
@@ -151,7 +151,7 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     cbar.ax.tick_params(labelrotation=45)
     cbar.set_label('Density')
 
-    fig1.suptitle(f'Lightning strike density between {start_date} and {end_date}')
+    fig1.suptitle(f'Lightning stroke density between {start_date} and {end_date}')
     # Adjust layout to prevent overlap
     plt.subplots_adjust(bottom=0.2)  
     
@@ -191,24 +191,24 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     axs2[0].set_title(f'Difference in probability density')
 
     cbar_prob = fig2.colorbar(contour_dif_prob, ax=axs2[0], orientation='horizontal', fraction=0.05, pad=0.1)
-    cbar_prob.set_label('Density')
+    cbar_prob.set_label('Probability Density')
 
-    cbar_prob.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
-    cbar_prob.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
+    cbar_prob.ax.text(0, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
+    cbar_prob.ax.text(1, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_prob.ax.transAxes)
     cbar_prob.ax.tick_params(labelrotation = 45)
 
 
     contour_dif_strikes = axs2[1].contourf(lon_mesh, lat_mesh, density_dif_strikes, levels=levels_strikes, cmap='seismic', vmin = -colorbar_max_strikes, vmax = colorbar_max_strikes)
     plot_map(axs2[1])
-    axs2[1].set_title(f'Difference in strikes')
+    axs2[1].set_title(f'Difference in strokes')
 
     cbar_strikes = fig2.colorbar(contour_dif_strikes, ax=axs2[1], orientation='horizontal', fraction=0.05, pad=0.1)
-    cbar_strikes.set_label('Density')
+    cbar_strikes.set_label('Strokes')
 
-    cbar_strikes.ax.text(0, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
-    cbar_strikes.ax.text(1, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
+    cbar_strikes.ax.text(0, 1.05, 'CLDN dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
+    cbar_strikes.ax.text(1, 1.05, 'AEM dominant', ha='center', va='bottom', transform=cbar_strikes.ax.transAxes)
     cbar_strikes.ax.tick_params(labelrotation=45)
-    fig2.suptitle(f'Lightning strike density difference between {start_date} and {end_date}')
+    fig2.suptitle(f'Lightning stroke density difference between {start_date} and {end_date}')
     plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_dif.png')
  
     #Produce table
@@ -227,7 +227,7 @@ def plot_density(aem_df, cldn_df, n_grid_points, start_date, end_date):
     axs3.axis('tight')
     axs3.axis('off')
     table = axs3.table(cellText=all_strikes.values, colLabels=all_strikes.columns, rowLabels=list(fire_centers.keys()), loc='center')
-    axs3.set_title(f'Lightning strike density between {start_date} and {end_date}')
+    axs3.set_title(f'Lightning stroke counts between {start_date} and {end_date}')
     plt.savefig(f'plots/lx_density_plots/{start_date}_to_{end_date}_table.png')
     plt.show()
 
